@@ -2,13 +2,16 @@ package yenha.foodstore.Order.Controller;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import yenha.foodstore.Order.DTO.OrderDTO;
 import yenha.foodstore.Order.DTO.OrderResponseDTO;
 import yenha.foodstore.Order.DTO.StatusUpdateDTO;
 import yenha.foodstore.Order.Entity.Order;
 import yenha.foodstore.Order.Entity.OrderStatus;
+import yenha.foodstore.Order.Service.OrderEventService;
 import yenha.foodstore.Order.Service.OrderService;
 
 import java.util.List;
@@ -21,6 +24,28 @@ import java.util.Optional;
 public class OrderController {
 
     private final OrderService orderService;
+    private final OrderEventService orderEventService;
+
+    @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamOrders(@RequestParam(defaultValue = "default") String clientId) {
+        return orderEventService.createEmitter(clientId);
+    }
+
+    @PostMapping("/test-sse")
+    public ResponseEntity<String> testSSE() {
+        // Create a dummy order for testing SSE
+        OrderResponseDTO testOrder = new OrderResponseDTO();
+        testOrder.setOrderId(999L);
+        testOrder.setCustomerName("Test Customer");
+        testOrder.setTableNumber(1);
+        testOrder.setTotalAmount(25.99);
+        testOrder.setOrderTime(java.time.LocalDateTime.now());
+        testOrder.setStatus(OrderStatus.PENDING);
+        testOrder.setItems(new java.util.ArrayList<>());
+        
+        orderEventService.broadcastOrderCreated(testOrder);
+        return ResponseEntity.ok("Test SSE event sent");
+    }
 
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(@RequestBody OrderDTO orderDTO) {
@@ -48,6 +73,10 @@ public class OrderController {
             
             Order createdOrder = orderService.createOrder(orderDTO);
             OrderResponseDTO responseDTO = orderService.convertToResponseDTO(createdOrder);
+            
+            // Broadcast order creation event via SSE
+            orderEventService.broadcastOrderCreated(responseDTO);
+            
             return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
             
         } catch (Exception e) {
@@ -98,6 +127,10 @@ public class OrderController {
         try {
             Order updatedOrder = orderService.updateOrderStatus(orderId, statusUpdate.getStatus());
             OrderResponseDTO responseDTO = orderService.convertToResponseDTO(updatedOrder);
+            
+            // Broadcast order status change event via SSE
+            orderEventService.broadcastOrderStatusChanged(responseDTO);
+            
             return ResponseEntity.ok(responseDTO);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
