@@ -25,5 +25,5 @@ public class ProductDTO {
     private String image;
     
     @NotNull(message = "Category ID is required")
-    private Long categoryId; // Using categoryId instead of full Category object
+    private Long categoryId;
 }
