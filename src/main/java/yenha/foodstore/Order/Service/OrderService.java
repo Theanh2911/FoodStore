@@ -31,18 +31,16 @@ public class OrderService {
 
     @Transactional
     public Order createOrder(OrderDTO orderDTO) {
-        // Create new order
+
         Order order = new Order();
         order.setCustomerName(orderDTO.getName());
         order.setTableNumber(orderDTO.getTableNumber());
         order.setTotalAmount(orderDTO.getTotal());
         order.setOrderTime(LocalDateTime.now());
         order.setStatus(OrderStatus.PENDING);
-        
-        // Save the order first to get the ID
+
         order = orderRepository.save(order);
-        
-        // Create order items
+
         List<OrderItem> orderItems = new ArrayList<>();
         for (OrderItemDTO itemDTO : orderDTO.getItems()) {
             Optional<Product> productOpt = productRepository.findById(itemDTO.getProductId());
@@ -55,8 +53,7 @@ public class OrderService {
                 orderItems.add(orderItem);
             }
         }
-        
-        // Save order items
+
         orderItemRepository.saveAll(orderItems);
         order.setItems(orderItems);
         
