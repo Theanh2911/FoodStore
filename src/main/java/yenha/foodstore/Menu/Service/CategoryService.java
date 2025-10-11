@@ -2,6 +2,7 @@ package yenha.foodstore.Menu.Service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import yenha.foodstore.Constant.Error;
 import yenha.foodstore.Menu.Entity.Category;
 import yenha.foodstore.Menu.Repository.CategoryRepository;
 
@@ -37,18 +38,19 @@ public class CategoryService {
             existingCategory.setName(categoryDetails.getName());
             return categoryRepository.save(existingCategory);
         }
-        throw new RuntimeException("Category not found with id: " + id);
+        throw new RuntimeException(Error.CATEGORY_NOT_FOUND + id);
     }
 
     public void deleteCategory(Long id) {
         if (categoryRepository.existsById(id)) {
             categoryRepository.deleteById(id);
         } else {
-            throw new RuntimeException("Category not found with id: " + id);
+            throw new RuntimeException(Error.CATEGORY_NOT_FOUND + id);
         }
     }
 
     public boolean existsById(Long id) {
         return categoryRepository.existsById(id);
     }
+
 }

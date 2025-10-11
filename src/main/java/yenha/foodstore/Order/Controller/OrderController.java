@@ -6,6 +6,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
+import yenha.foodstore.Constant.Error;
 import yenha.foodstore.Order.DTO.OrderDTO;
 import yenha.foodstore.Order.DTO.OrderResponseDTO;
 import yenha.foodstore.Order.DTO.StatusUpdateDTO;
@@ -33,10 +34,9 @@ public class OrderController {
 
     @PostMapping("/test-sse")
     public ResponseEntity<String> testSSE() {
-        // Create a dummy order for testing SSE
         OrderResponseDTO testOrder = new OrderResponseDTO();
         testOrder.setOrderId(999L);
-        testOrder.setCustomerName("Test Customer");
+        testOrder.setCustomerName("Thử khách hàng");
         testOrder.setTableNumber(1);
         testOrder.setTotalAmount(25.99);
         testOrder.setOrderTime(java.time.LocalDateTime.now());
@@ -44,44 +44,40 @@ public class OrderController {
         testOrder.setItems(new java.util.ArrayList<>());
         
         orderEventService.broadcastOrderCreated(testOrder);
-        return ResponseEntity.ok("Test SSE event sent");
+        return ResponseEntity.ok("reload database event test");
     }
 
     @PostMapping("/create")
     public ResponseEntity<?> createOrder(@RequestBody OrderDTO orderDTO) {
         try {
             if (orderDTO.getName() == null || orderDTO.getName().trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Customer name is required");
+                return ResponseEntity.badRequest().body(Error.ORDER_CUSTOMER_NAME_BLANK);
             }
             
             if (orderDTO.getTotal() == null || orderDTO.getTotal() <= 0) {
-                return ResponseEntity.badRequest().body("Total amount must be greater than 0");
+                return ResponseEntity.badRequest().body(Error.ORDER_TOTAL_INVALID);
             }
             
             if (orderDTO.getItems() == null || orderDTO.getItems().isEmpty()) {
-                return ResponseEntity.badRequest().body("Order must contain at least one item");
+                return ResponseEntity.badRequest().body(Error.ORDER_ITEMS_EMPTY);
             }
 
             for (var item : orderDTO.getItems()) {
-                if (item.getProductId() == null) {
-                    return ResponseEntity.badRequest().body("Product ID is required for each item");
-                }
                 if (item.getQuantity() == null || item.getQuantity() <= 0) {
-                    return ResponseEntity.badRequest().body("Quantity must be greater than 0 for each item");
+                    return ResponseEntity.badRequest().body(Error.ORDER_ITEM_QUANTITY_INVALID);
                 }
             }
             
             Order createdOrder = orderService.createOrder(orderDTO);
             OrderResponseDTO responseDTO = orderService.convertToResponseDTO(createdOrder);
-            
-            // Broadcast order creation event via SSE
+
             orderEventService.broadcastOrderCreated(responseDTO);
             
             return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
             
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body("Error creating order: " + e.getMessage());
+                .body(e.getMessage());
         }
     }
 
@@ -127,8 +123,7 @@ public class OrderController {
         try {
             Order updatedOrder = orderService.updateOrderStatus(orderId, statusUpdate.getStatus());
             OrderResponseDTO responseDTO = orderService.convertToResponseDTO(updatedOrder);
-            
-            // Broadcast order status change event via SSE
+
             orderEventService.broadcastOrderStatusChanged(responseDTO);
             
             return ResponseEntity.ok(responseDTO);
