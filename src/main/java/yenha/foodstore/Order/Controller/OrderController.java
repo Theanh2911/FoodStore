@@ -48,10 +48,19 @@ public class OrderController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> createOrder(@RequestBody OrderDTO orderDTO) {
+    public ResponseEntity<?> createOrder(@RequestBody OrderDTO orderDTO, @RequestParam(required = false) String sessionId) {
         try {
             if (orderDTO.getName() == null || orderDTO.getName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Error.ORDER_CUSTOMER_NAME_BLANK);
+            }
+            
+            if (sessionId != null && !sessionId.trim().isEmpty()) {
+                orderDTO.setSessionId(sessionId);
+            }
+
+            if ((orderDTO.getSessionId() == null || orderDTO.getSessionId().trim().isEmpty()) && 
+                (orderDTO.getTableNumber() == null || orderDTO.getTableNumber() <= 0)) {
+                return ResponseEntity.badRequest().body("Table number is required when no session is provided");
             }
             
             if (orderDTO.getTotal() == null || orderDTO.getTotal() <= 0) {
