@@ -21,8 +21,8 @@ public class OrderSessionController {
         this.sessionService = sessionService;
     }
 
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createSession(@RequestParam Integer tableNumber) {
+    @PostMapping("/{tableNumber}")
+    public ResponseEntity<Map<String, Object>> createSession(@PathVariable Integer tableNumber) {
         OrderSession session = sessionService.createSession(tableNumber);
         return ResponseEntity.ok(Map.of(
                 "sessionId", session.getSessionId(),
