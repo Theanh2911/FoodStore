@@ -8,4 +8,9 @@ import java.util.Optional;
 @Repository
 public interface OrderSessionRepository extends JpaRepository<OrderSession, Long> {
     Optional<OrderSession> findBySessionId(String sessionId);
+    
+    /**
+     * Note: Session expiration is handled by MySQL Event
+     * No need for complex queries in Java code
+     */
 }

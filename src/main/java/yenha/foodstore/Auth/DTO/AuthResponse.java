@@ -5,6 +5,9 @@ public class AuthResponse {
     private String name;
     private String phoneNumber;
     private String message;
+    private String token;
+    private String refreshToken;
+    private String role;
 
     public AuthResponse() {}
 
@@ -12,11 +15,23 @@ public class AuthResponse {
         this.message = message;
     }
 
-    public AuthResponse(Long userId, String name, String phoneNumber, String message) {
+    public AuthResponse(Long userId, String name, String phoneNumber, String message, String token, String role) {
         this.userId = userId;
         this.name = name;
         this.phoneNumber = phoneNumber;
         this.message = message;
+        this.token = token;
+        this.role = role;
+    }
+    
+    public AuthResponse(Long userId, String name, String phoneNumber, String message, String token, String refreshToken, String role) {
+        this.userId = userId;
+        this.name = name;
+        this.phoneNumber = phoneNumber;
+        this.message = message;
+        this.token = token;
+        this.refreshToken = refreshToken;
+        this.role = role;
     }
 
     public Long getUserId() {
@@ -49,6 +64,30 @@ public class AuthResponse {
 
     public void setMessage(String message) {
         this.message = message;
+    }
+
+    public String getToken() {
+        return token;
+    }
+
+    public void setToken(String token) {
+        this.token = token;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+    
+    public String getRefreshToken() {
+        return refreshToken;
+    }
+    
+    public void setRefreshToken(String refreshToken) {
+        this.refreshToken = refreshToken;
     }
 }
 
