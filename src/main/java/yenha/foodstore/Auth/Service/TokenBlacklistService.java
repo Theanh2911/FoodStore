@@ -33,7 +33,6 @@ public class TokenBlacklistService {
      * @param expirationTime When the token expires (in milliseconds since epoch)
      * @param tokenType The type of token ("access" or "refresh")
      */
-    @org.springframework.transaction.annotation.Transactional
     public void blacklistToken(String token, Long expirationTime, String tokenType) {
         // Check if token is already blacklisted to avoid duplicates
         if (!blacklistedTokenRepository.existsByToken(token)) {
@@ -44,12 +43,9 @@ public class TokenBlacklistService {
             
             BlacklistedToken blacklistedToken = new BlacklistedToken(token, expiration, tokenType);
             blacklistedTokenRepository.save(blacklistedToken);
-            blacklistedTokenRepository.flush(); // Force immediate commit to database
             
-            log.info("Token blacklisted successfully (type: {}). Total blacklisted tokens: {}", 
+            log.info("Token blacklisted (type: {}). Total blacklisted tokens: {}", 
                     tokenType, blacklistedTokenRepository.count());
-        } else {
-            log.info("Token already in blacklist, skipping duplicate");
         }
     }
     

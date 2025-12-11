@@ -96,10 +96,10 @@ public class AuthController {
                 return ResponseEntity.badRequest().body(response);
             }
             
-            String token = authHeader.substring(7).trim();
+            String token = authHeader.substring(7);
             
+            // Extract expiration time and type from token
             try {
-                // Extract expiration time and type from token
                 Claims claims = jwtUtils.extractClaims(token, claims1 -> claims1);
                 Date expiration = claims.getExpiration();
                 String tokenType = jwtUtils.getTokenType(token);
@@ -110,15 +110,9 @@ public class AuthController {
                 
                 response.put("message", "Logged out successfully");
                 return ResponseEntity.ok(response);
-                
-            } catch (Exception e) {
-                // Important: Still blacklist token even if parsing fails
-                // This handles expired tokens that still need to be blacklisted
-                long defaultExpiration = System.currentTimeMillis() + (24 * 60 * 60 * 1000);
-                tokenBlacklistService.blacklistToken(token, defaultExpiration, "access");
-                
-                response.put("message", "Logged out successfully");
-                return ResponseEntity.ok(response);
+            } catch (JwtException e) {
+                response.put("message", "Invalid token");
+                return ResponseEntity.badRequest().body(response);
             }
         } catch (Exception e) {
             response.put("message", "Logout failed: " + e.getMessage());
@@ -213,4 +207,48 @@ public class AuthController {
         return ResponseEntity.ok(userService.findByRoles(roles));
     }
     
+    /**
+     * DEBUG: Check token expiration time
+     */
+    @PostMapping("/debug-token")
+    public ResponseEntity<Map<String, Object>> debugToken(@RequestBody Map<String, String> request) {
+        String token = request.get("token");
+        
+        if (token == null || token.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Token is required"));
+        }
+        
+        try {
+            Claims claims = jwtUtils.extractClaims(token, c -> c);
+            
+            long currentTime = System.currentTimeMillis();
+            long issuedAtMs = claims.getIssuedAt().getTime();
+            long expirationMs = claims.getExpiration().getTime();
+            long durationMs = expirationMs - issuedAtMs;
+            long remainingMs = expirationMs - currentTime;
+            
+            boolean isBlacklisted = tokenBlacklistService.isTokenBlacklisted(token);
+            boolean isExpired = claims.getExpiration().before(new Date());
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("phoneNumber", claims.getSubject());
+            response.put("role", claims.get("role"));
+            response.put("type", claims.get("type"));
+            response.put("issuedAt", claims.getIssuedAt().toString());
+            response.put("expiresAt", claims.getExpiration().toString());
+            response.put("currentTime", new Date(currentTime).toString());
+            response.put("configuredDurationMinutes", 30);
+            response.put("actualDurationMinutes", durationMs / 1000 / 60);
+            response.put("remainingMinutes", remainingMs / 1000 / 60);
+            response.put("remainingSeconds", (remainingMs / 1000) % 60);
+            response.put("isExpired", isExpired);
+            response.put("isBlacklisted", isBlacklisted);
+            response.put("shouldBeValid", !isExpired && !isBlacklisted);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of("error", "Invalid token", "message", e.getMessage()));
+        }
+    }
+
 }
