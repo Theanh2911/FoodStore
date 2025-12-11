@@ -22,51 +22,16 @@ public class OrderSessionController {
     @PostMapping
     public ResponseEntity<Map<String, Object>> createSession(@RequestParam Integer tableNumber) {
         OrderSession session = sessionService.createSession(tableNumber);
-        
-        // Calculate expiration time (configured hours from creation)
-        int expirationHours = sessionService.getSessionExpirationHours();
-        java.time.LocalDateTime expiresAt = session.getCreatedAt().plusHours(expirationHours);
-        
         return ResponseEntity.ok(Map.of(
                 "sessionId", session.getSessionId(),
-                "tableNumber", session.getTableNumber(),
-                "createdAt", session.getCreatedAt().toString(),
-                "expiresAt", expiresAt.toString(),
-                "isActive", session.getIsActive()
+                "tableNumber", session.getTableNumber()
         ));
     }
 
     @GetMapping("/{sessionId}")
-    public ResponseEntity<?> getSession(@PathVariable String sessionId) {
+    public ResponseEntity<OrderSession> getSession(@PathVariable String sessionId) {
         OrderSession session = sessionService.getSession(sessionId);
-        
-        if (session == null) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        // Calculate expiration time and remaining time
-        int expirationHours = sessionService.getSessionExpirationHours();
-        java.time.LocalDateTime expiresAt = session.getCreatedAt().plusHours(expirationHours);
-        java.time.Duration remainingTime = java.time.Duration.between(
-            java.time.LocalDateTime.now(), expiresAt
-        );
-        
-        Map<String, Object> response = new java.util.HashMap<>();
-        response.put("sessionId", session.getSessionId());
-        response.put("tableNumber", session.getTableNumber());
-        response.put("createdAt", session.getCreatedAt().toString());
-        response.put("expiresAt", expiresAt.toString());
-        response.put("isActive", session.getIsActive());
-        
-        if (session.getIsActive() && remainingTime.toSeconds() > 0) {
-            response.put("remainingMinutes", remainingTime.toMinutes());
-            response.put("isExpired", false);
-        } else {
-            response.put("remainingMinutes", 0);
-            response.put("isExpired", true);
-        }
-        
-        return ResponseEntity.ok(response);
+        return session != null ? ResponseEntity.ok(session) : ResponseEntity.notFound().build();
     }
 
     @PutMapping("/end/{sessionId}")
