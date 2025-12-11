@@ -19,8 +19,8 @@ public class OrderSessionController {
         this.sessionService = sessionService;
     }
 
-    @PostMapping
-    public ResponseEntity<Map<String, Object>> createSession(@RequestParam Integer tableNumber) {
+    @PostMapping("/{tableNumber}")
+    public ResponseEntity<Map<String, Object>> createSession(@PathVariable Integer tableNumber) {
         OrderSession session = sessionService.createSession(tableNumber);
         
         // Calculate expiration time (configured hours from creation)
