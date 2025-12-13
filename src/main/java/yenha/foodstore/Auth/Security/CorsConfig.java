@@ -10,24 +10,28 @@ import java.util.Arrays;
 
 @Configuration
 public class CorsConfig {
-    
+
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-
         config.setAllowCredentials(true);
+        config.addAllowedOriginPattern("http://localhost:[*]");
 
-        config.addAllowedOriginPattern("http://localhost:*");
         config.addAllowedOriginPattern("https://*.vercel.app");
-        config.addAllowedOrigin("https://api.yenhafood.site");
+
+        config.addAllowedOriginPattern("https://yenhafood.site");
+        config.addAllowedOriginPattern("https://www.yenhafood.site");
+        config.addAllowedOriginPattern("https://admin.yenhafood.site");
 
         config.addAllowedMethod("*");
+
         config.addAllowedHeader("*");
+
         config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type"));
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", config);
+
         return source;
     }
 }
-
