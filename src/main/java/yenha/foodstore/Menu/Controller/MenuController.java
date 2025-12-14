@@ -24,7 +24,6 @@ import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/menu")
-@CrossOrigin(origins = "*")
 public class MenuController {
 
     @Autowired
