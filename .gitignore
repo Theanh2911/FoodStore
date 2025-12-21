@@ -35,6 +35,7 @@ target/
 
 # Local configuration files containing sensitive data
 application-local.properties
+application.properties
 .env
 .env.local
 .env.*.local

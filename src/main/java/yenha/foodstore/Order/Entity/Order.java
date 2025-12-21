@@ -26,6 +26,8 @@ public class Order {
     @Column(nullable = false)
     private Double totalAmount;
 
+    private String userId;
+
     private String customerName;
 
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)

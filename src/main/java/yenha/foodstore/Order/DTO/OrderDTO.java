@@ -9,6 +9,8 @@ import java.util.List;
 public class OrderDTO {
     private String name;
     private Integer tableNumber;
+    private String sessionId;
+    private String userId;
     private Double total;
     private List<OrderItemDTO> items;
 }

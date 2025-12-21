@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import yenha.foodstore.Constant.Error;
@@ -21,7 +22,6 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "*")
 public class OrderController {
 
     private final OrderService orderService;
@@ -32,26 +32,20 @@ public class OrderController {
         return orderEventService.createEmitter(clientId);
     }
 
-    @PostMapping("/test-sse")
-    public ResponseEntity<String> testSSE() {
-        OrderResponseDTO testOrder = new OrderResponseDTO();
-        testOrder.setOrderId(999L);
-        testOrder.setCustomerName("Thử khách hàng");
-        testOrder.setTableNumber(1);
-        testOrder.setTotalAmount(25.99);
-        testOrder.setOrderTime(java.time.LocalDateTime.now());
-        testOrder.setStatus(OrderStatus.PENDING);
-        testOrder.setItems(new java.util.ArrayList<>());
-        
-        orderEventService.broadcastOrderCreated(testOrder);
-        return ResponseEntity.ok("reload database event test");
-    }
-
     @PostMapping("/create")
-    public ResponseEntity<?> createOrder(@RequestBody OrderDTO orderDTO) {
+    public ResponseEntity<?> createOrder(@RequestBody OrderDTO orderDTO, @RequestParam(required = false) String sessionId) {
         try {
             if (orderDTO.getName() == null || orderDTO.getName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Error.ORDER_CUSTOMER_NAME_BLANK);
+            }
+            
+            if (sessionId != null && !sessionId.trim().isEmpty()) {
+                orderDTO.setSessionId(sessionId);
+            }
+
+            if ((orderDTO.getSessionId() == null || orderDTO.getSessionId().trim().isEmpty()) && 
+                (orderDTO.getTableNumber() == null || orderDTO.getTableNumber() <= 0)) {
+                return ResponseEntity.badRequest().body("Table number is required when no session is provided");
             }
             
             if (orderDTO.getTotal() == null || orderDTO.getTotal() <= 0) {
@@ -81,6 +75,7 @@ public class OrderController {
         }
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @GetMapping("/getAll")
     public ResponseEntity<List<OrderResponseDTO>> getAllOrders() {
         List<Order> orders = orderService.getAllOrders();
@@ -90,6 +85,7 @@ public class OrderController {
         return ResponseEntity.ok(responseDTOs);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @GetMapping("/{orderId}")
     public ResponseEntity<?> getOrderById(@PathVariable Long orderId) {
         Optional<Order> order = orderService.getOrderById(orderId);
@@ -100,6 +96,7 @@ public class OrderController {
         return ResponseEntity.notFound().build();
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @GetMapping("/status/{status}")
     public ResponseEntity<List<OrderResponseDTO>> getOrdersByStatus(@PathVariable OrderStatus status) {
         List<Order> orders = orderService.getOrdersByStatus(status);
@@ -109,6 +106,7 @@ public class OrderController {
         return ResponseEntity.ok(responseDTOs);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @GetMapping("/table/{tableNumber}")
     public ResponseEntity<List<OrderResponseDTO>> getOrdersByTableNumber(@PathVariable Integer tableNumber) {
         List<Order> orders = orderService.getOrdersByTableNumber(tableNumber);
@@ -118,6 +116,7 @@ public class OrderController {
         return ResponseEntity.ok(responseDTOs);
     }
 
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @PutMapping("/{orderId}/status")
     public ResponseEntity<?> updateOrderStatus(@PathVariable Long orderId, @RequestBody StatusUpdateDTO statusUpdate) {
         try {

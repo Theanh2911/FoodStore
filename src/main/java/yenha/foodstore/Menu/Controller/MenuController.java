@@ -4,6 +4,7 @@ import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -68,6 +69,7 @@ public class MenuController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/categories/create")
     public ResponseEntity<Category> createCategory(@RequestBody Category category) {
         try {
@@ -78,6 +80,7 @@ public class MenuController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/categories/update/{id}")
     public ResponseEntity<Category> updateCategory(@PathVariable Long id, @RequestBody Category category) {
         try {
@@ -90,6 +93,7 @@ public class MenuController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/categories/delete/{id}")
     public ResponseEntity<HttpStatus> deleteCategory(@PathVariable Long id) {
         try {
@@ -138,31 +142,7 @@ public class MenuController {
         }
     }
 
-//    @PostMapping("/products/create")
-//    public ResponseEntity<?> createProduct(@Valid @RequestBody ProductDTO productDTO, BindingResult bindingResult) {
-//        // Check for validation errors
-//        if (bindingResult.hasErrors()) {
-//            Map<String, String> errors = new HashMap<>();
-//            bindingResult.getFieldErrors().forEach(error ->
-//                errors.put(error.getField(), error.getDefaultMessage())
-//            );
-//            return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
-//        }
-//
-//        try {
-//            Product savedProduct = productService.saveProductFromDTO(productDTO);
-//            return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
-//        } catch (RuntimeException e) {
-//            Map<String, String> error = new HashMap<>();
-//            error.put("error", e.getMessage());
-//            return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-//        } catch (Exception e) {
-//            Map<String, String> error = new HashMap<>();
-//            error.put("error", "Internal server error: " + e.getMessage());
-//            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-//        }
-//    }
-
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/products/create", consumes = {"multipart/form-data"})
     public ResponseEntity<?> createProduct(
             @RequestPart("product") @Valid ProductDTO productDTO,
@@ -175,7 +155,6 @@ public class MenuController {
                     errors.put(error.getField(), error.getDefaultMessage()));
             return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
         }
-
         try {
             if (imageFile != null && !imageFile.isEmpty()) {
                 String imageUrl = s3Service.uploadFile(imageFile);
@@ -201,6 +180,7 @@ public class MenuController {
     }
 
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(value = "/products/update/{id}", consumes = {"multipart/form-data"})
     public ResponseEntity<?> updateProduct(
             @PathVariable Long id,
@@ -256,6 +236,7 @@ public class MenuController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping("/products/update-json/{id}")
     public ResponseEntity<?> updateProductJson(@PathVariable Long id, @Valid @RequestBody ProductDTO productDTO, BindingResult bindingResult) {
 
@@ -300,6 +281,7 @@ public class MenuController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/products/create-with-image")
     public ResponseEntity<?> createProductFlexible(
             @RequestParam("name") String name,
@@ -352,6 +334,7 @@ public class MenuController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PutMapping(value = "/products/update-with-image/{id}")
     public ResponseEntity<?> updateProductFlexible(
             @PathVariable Long id,
@@ -416,6 +399,7 @@ public class MenuController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/upload-image")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
@@ -448,6 +432,7 @@ public class MenuController {
         }
     }
 
+    @PreAuthorize("hasRole('ADMIN')")
     @DeleteMapping("/products/delete/{id}")
     public ResponseEntity<?> deleteProduct(@PathVariable Long id) {
         try {

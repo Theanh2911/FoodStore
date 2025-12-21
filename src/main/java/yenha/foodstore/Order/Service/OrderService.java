@@ -3,6 +3,10 @@ package yenha.foodstore.Order.Service;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import yenha.foodstore.Auth.Entity.OrderSession;
+import yenha.foodstore.Auth.Entity.User;
+import yenha.foodstore.Auth.Service.OrderSessionService;
+import yenha.foodstore.Auth.Service.UserService;
 import yenha.foodstore.Menu.Entity.Product;
 import yenha.foodstore.Menu.Repository.ProductRepository;
 import yenha.foodstore.Order.DTO.OrderDTO;
@@ -28,13 +32,44 @@ public class OrderService {
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
+    private final OrderSessionService orderSessionService;
+    private final UserService userService;
 
     @Transactional
     public Order createOrder(OrderDTO orderDTO) {
 
         Order order = new Order();
-        order.setCustomerName(orderDTO.getName());
-        order.setTableNumber(orderDTO.getTableNumber());
+        
+        // Auto-map customer name from userId if provided
+        String customerName = orderDTO.getName(); // Default to provided name
+        if (orderDTO.getUserId() != null && !orderDTO.getUserId().trim().isEmpty()) {
+            try {
+                Long userId = Long.parseLong(orderDTO.getUserId());
+                Optional<User> userOpt = userService.findById(userId);
+                if (userOpt.isPresent()) {
+                    customerName = userOpt.get().getName(); // Use user's name from database
+                    order.setUserId(orderDTO.getUserId());
+                } else {
+                    throw new RuntimeException("User not found with ID: " + orderDTO.getUserId());
+                }
+            } catch (NumberFormatException e) {
+                throw new RuntimeException("Invalid user ID format: " + orderDTO.getUserId());
+            }
+        }
+        
+        order.setCustomerName(customerName);
+
+        Integer tableNumber = orderDTO.getTableNumber();
+        if (orderDTO.getSessionId() != null && !orderDTO.getSessionId().trim().isEmpty()) {
+            OrderSession session = orderSessionService.getSession(orderDTO.getSessionId());
+            if (session != null && session.getIsActive()) {
+                tableNumber = session.getTableNumber();
+            } else {
+                throw new RuntimeException("Invalid or inactive session: " + orderDTO.getSessionId());
+            }
+        }
+        
+        order.setTableNumber(tableNumber);
         order.setTotalAmount(orderDTO.getTotal());
         order.setOrderTime(LocalDateTime.now());
         order.setStatus(OrderStatus.PENDING);
@@ -74,6 +109,10 @@ public class OrderService {
     
     public List<Order> getOrdersByTableNumber(Integer tableNumber) {
         return orderRepository.findByTableNumber(tableNumber);
+    }
+    
+    public List<Order> getOrdersByUserId(String userId) {
+        return orderRepository.findByUserIdOrderByOrderTimeDesc(userId);
     }
     
     @Transactional
