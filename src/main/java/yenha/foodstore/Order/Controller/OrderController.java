@@ -85,7 +85,7 @@ public class OrderController {
         return ResponseEntity.ok(responseDTOs);
     }
 
-    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    // Public endpoint - cho phép user check order status của mình
     @GetMapping("/{orderId}")
     public ResponseEntity<?> getOrderById(@PathVariable Long orderId) {
         Optional<Order> order = orderService.getOrderById(orderId);
