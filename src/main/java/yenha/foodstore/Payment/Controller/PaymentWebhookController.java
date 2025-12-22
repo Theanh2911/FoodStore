@@ -9,7 +9,7 @@ import yenha.foodstore.Payment.DTO.WebhookResponseDTO;
 import yenha.foodstore.Payment.Service.PaymentService;
 
 @RestController
-@RequestMapping("/api/payment/webhook")
+@RequestMapping("/api/payment")
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentWebhookController {
@@ -17,36 +17,44 @@ public class PaymentWebhookController {
     private final PaymentService paymentService;
     
     /**
-     * Endpoint nhận webhook từ SePay
+     * Webhook endpoint để nhận thông báo từ SePay khi có giao dịch
      * POST /api/payment/webhook/sepay
+     * 
+     * Webhook này sẽ được SePay gọi khi có giao dịch chuyển tiền vào tài khoản
+     * Content: {"gateway":"MBBank","transactionDate":"2025-12-22 09:22:00",
+     *           "accountNumber":"696291102","subAccount":null,"code":"YHF36",
+     *           "content":"YHF36","transferType":"in","description":"BankAPINotify YHF36",
+     *           "transferAmount":2000,"referenceCode":"FT25356241317830",
+     *           "accumulated":8000,"id":36346742}
      */
-    @PostMapping("/sepay")
+    @PostMapping("/webhook/sepay")
     public ResponseEntity<WebhookResponseDTO> handleSepayWebhook(@RequestBody SepayWebhookDTO webhook) {
-        log.info("Received webhook from SePay: id={}, amount={}, content={}", 
-            webhook.getId(), 
-            webhook.getTransferAmount(), 
-            webhook.getContent());
+        log.info("============================================================");
+        log.info("Received webhook from SePay:");
+        log.info("  - ID: {}", webhook.getId());
+        log.info("  - Gateway: {}", webhook.getGateway());
+        log.info("  - Code: {}", webhook.getCode());
+        log.info("  - Content: {}", webhook.getContent());
+        log.info("  - Transfer Amount: {}", webhook.getTransferAmount());
+        log.info("  - Transfer Type: {}", webhook.getTransferType());
+        log.info("  - Transaction Date: {}", webhook.getTransactionDate());
+        log.info("============================================================");
         
         try {
-            // Xử lý async để trả về response ngay lập tức
+            // Gọi service xử lý webhook (synchronous)
             paymentService.processWebhook(webhook);
             
-            // Trả về 200 OK ngay cho SePay
-            return ResponseEntity.ok(WebhookResponseDTO.success());
+            log.info("Webhook processed successfully for id: {}", webhook.getId());
+            
+            // Trả về response cho SePay
+            return ResponseEntity.ok(new WebhookResponseDTO(true, "OK"));
             
         } catch (Exception e) {
-            log.error("Error handling webhook: ", e);
-            // Vẫn trả về 200 OK để SePay không retry
-            return ResponseEntity.ok(WebhookResponseDTO.success());
+            log.error("============================================================");
+            log.error("ERROR processing webhook: {}", e.getMessage());
+            log.error("Exception details: ", e);
+            log.error("============================================================");
+            return ResponseEntity.ok(new WebhookResponseDTO(false, "Error: " + e.getMessage()));
         }
     }
-    
-    /**
-     * Health check endpoint
-     */
-    @GetMapping("/health")
-    public ResponseEntity<String> health() {
-        return ResponseEntity.ok("Webhook endpoint is healthy");
-    }
 }
-
