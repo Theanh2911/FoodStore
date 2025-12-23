@@ -1,6 +1,7 @@
 package yenha.foodstore.Payment.Service;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import yenha.foodstore.Payment.DTO.PaymentEventDTO;
@@ -23,8 +24,8 @@ public class SSEService {
      * @return SseEmitter để FE subscribe
      */
     public SseEmitter createEmitter(Long orderId) {
-        // Timeout sau 5 phút (300000ms)
-        SseEmitter emitter = new SseEmitter(300000L);
+        // Timeout sau 15 phút (900000ms) - đủ thời gian cho customer thanh toán
+        SseEmitter emitter = new SseEmitter(900000L);
         
         // Thêm vào map
         emitters.put(orderId, emitter);
@@ -112,5 +113,30 @@ public class SSEService {
         });
         emitters.clear();
     }
+    
+    /**
+     * Gửi heartbeat mỗi 30 giây để giữ connection sống
+     * Tránh browser/proxy timeout
+     */
+    @Scheduled(fixedRate = 30000) // Chạy mỗi 30 giây
+    public void sendHeartbeat() {
+        if (emitters.isEmpty()) {
+            return;
+        }
+        
+        emitters.forEach((orderId, emitter) -> {
+            try {
+                emitter.send(SseEmitter.event()
+                    .name("heartbeat")
+                    .data("ping"));
+                log.debug("SSE: Sent heartbeat for orderId: {}", orderId);
+            } catch (IOException e) {
+                log.warn("SSE: Heartbeat failed for orderId: {}, removing emitter", orderId);
+                emitters.remove(orderId);
+            }
+        });
+    }
 }
+
+
 
