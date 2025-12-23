@@ -15,7 +15,10 @@ import yenha.foodstore.Order.Entity.Order;
 import yenha.foodstore.Order.Entity.OrderStatus;
 import yenha.foodstore.Order.Service.OrderEventService;
 import yenha.foodstore.Order.Service.OrderService;
+import yenha.foodstore.Payment.DTO.PaymentEventDTO;
+import yenha.foodstore.Payment.Service.SSEService;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -26,6 +29,7 @@ public class OrderController {
 
     private final OrderService orderService;
     private final OrderEventService orderEventService;
+    private final SSEService sseService;
 
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOrders(@RequestParam(defaultValue = "default") String clientId) {
@@ -123,7 +127,20 @@ public class OrderController {
             Order updatedOrder = orderService.updateOrderStatus(orderId, statusUpdate.getStatus());
             OrderResponseDTO responseDTO = orderService.convertToResponseDTO(updatedOrder);
 
+            // Gửi ORDER SSE event (cho staff dashboard)
             orderEventService.broadcastOrderStatusChanged(responseDTO);
+            
+            // Nếu chuyển sang PAID, gửi PAYMENT SSE event (cho customer waiting page)
+            if (statusUpdate.getStatus() == OrderStatus.PAID) {
+                PaymentEventDTO paymentEvent = PaymentEventDTO.success(
+                    orderId,
+                    null,  // Không có paymentId (thanh toán thủ công)
+                    updatedOrder.getTotalAmount(),
+                    "MANUAL", // Gateway: MANUAL cho thanh toán thủ công
+                    LocalDateTime.now().toString()
+                );
+                sseService.sendPaymentEvent(orderId, paymentEvent);
+            }
             
             return ResponseEntity.ok(responseDTO);
         } catch (RuntimeException e) {
