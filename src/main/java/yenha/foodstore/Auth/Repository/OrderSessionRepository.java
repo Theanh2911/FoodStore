@@ -7,5 +7,7 @@ import java.util.Optional;
 
 @Repository
 public interface OrderSessionRepository extends JpaRepository<OrderSession, Long> {
+
     Optional<OrderSession> findBySessionId(String sessionId);
+
 }

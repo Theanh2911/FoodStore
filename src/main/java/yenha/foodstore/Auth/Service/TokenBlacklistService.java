@@ -60,13 +60,11 @@ public class TokenBlacklistService {
     
     /**
      * Clean up expired tokens from blacklist every hour
-     * This prevents database bloat by removing tokens that have already expired
      */
     @Scheduled(fixedRate = 3600000) // Run every hour
     public void cleanupExpiredTokens() {
         LocalDateTime currentTime = LocalDateTime.now();
-        
-        // Count expired tokens before cleanup
+
         long expiredCount = blacklistedTokenRepository.countExpiredTokens(currentTime);
         
         if (expiredCount > 0) {
@@ -76,12 +74,6 @@ public class TokenBlacklistService {
                     deletedCount, blacklistedTokenRepository.count());
         }
     }
-    
-    /**
-     * Get the count of blacklisted tokens (for monitoring)
-     */
-    public long getBlacklistedTokenCount() {
-        return blacklistedTokenRepository.count();
-    }
+
 }
 

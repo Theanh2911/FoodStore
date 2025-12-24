@@ -14,19 +14,16 @@ public class CorsConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-        
-        // Allow credentials (cookies, authorization headers)
+
         config.setAllowCredentials(true);
-        
-        // Allow specific origins (cannot use * with credentials=true)
+
         config.addAllowedOriginPattern("http://localhost:*");
         config.addAllowedOriginPattern("https://*.vercel.app");
         config.addAllowedOriginPattern("https://yenhafood.site");
         config.addAllowedOriginPattern("https://www.yenhafood.site");
         config.addAllowedOriginPattern("https://admin.yenhafood.site");
         config.addAllowedOriginPattern("https://api.yenhafood.site");
-        
-        // Allow all HTTP methods
+
         config.addAllowedMethod("GET");
         config.addAllowedMethod("POST");
         config.addAllowedMethod("PUT");
@@ -34,14 +31,11 @@ public class CorsConfig {
         config.addAllowedMethod("DELETE");
         config.addAllowedMethod("OPTIONS");
         config.addAllowedMethod("HEAD");
-        
-        // Allow all headers
+
         config.addAllowedHeader("*");
-        
-        // Expose headers that the browser can access
+
         config.setExposedHeaders(Arrays.asList("Authorization", "Content-Type", "X-Total-Count"));
-        
-        // Max age for preflight requests (1 hour)
+
         config.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -33,7 +33,6 @@ import java.io.IOException;
 
             if (token != null) {
                 try {
-                    // Check if token is blacklisted
                     if (tokenBlacklistService.isTokenBlacklisted(token)) {
                         log.warn("Token is blacklisted");
                         filterChain.doFilter(request, response);

@@ -31,7 +31,7 @@ public class BlacklistedToken {
     private LocalDateTime blacklistedAt;
     
     @Column(length = 20)
-    private String tokenType; // "access" or "refresh"
+    private String tokenType;
     
     public BlacklistedToken(String token, LocalDateTime expirationTime, String tokenType) {
         this.token = token;

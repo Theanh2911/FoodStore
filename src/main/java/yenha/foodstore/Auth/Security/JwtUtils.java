@@ -20,8 +20,9 @@ import java.util.function.Function;
 @Slf4j
 public class JwtUtils {
 
-    private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60L * 30L; // 30 minutes
+    private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60L * 30L; //30 minutes
     private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60L * 60L * 12L; // 12 hours
+
     private SecretKey key;
 
     @Value("${secretJwtString}")
@@ -33,6 +34,9 @@ public class JwtUtils {
         this.key = new SecretKeySpec(keyByte, "HmacSHA256");
     }
 
+    /**
+     * Gen token with its payload
+     */
     public String generateToken(String phoneNumber, String role){
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);

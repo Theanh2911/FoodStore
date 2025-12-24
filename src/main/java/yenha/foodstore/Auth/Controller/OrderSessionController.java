@@ -18,6 +18,9 @@ public class OrderSessionController {
         this.sessionService = sessionService;
     }
 
+    /**
+     * Create a new order session for a specific table number.
+     */
     @PostMapping
     public ResponseEntity<Map<String, Object>> createSession(@RequestParam Integer tableNumber) {
         OrderSession session = sessionService.createSession(tableNumber);
@@ -27,21 +30,31 @@ public class OrderSessionController {
         ));
     }
 
+    /**
+     * Get session details by session ID.
+     */
     @GetMapping("/{sessionId}")
     public ResponseEntity<OrderSession> getSession(@PathVariable String sessionId) {
         OrderSession session = sessionService.getSession(sessionId);
         return session != null ? ResponseEntity.ok(session) : ResponseEntity.notFound().build();
     }
 
+    /**
+     * Terminate an order session.
+     */
     @PutMapping("/end/{sessionId}")
     public ResponseEntity<Void> endSession(@PathVariable String sessionId) {
         sessionService.deactivateSession(sessionId);
         return ResponseEntity.ok().build();
     }
 
+    /**
+     * Get all order sessions.
+     */
     @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
     @GetMapping("/all")
     public ResponseEntity<java.util.List<OrderSession>> getAllSessions() {
         return ResponseEntity.ok(sessionService.getAllSessions());
     }
+
 }
