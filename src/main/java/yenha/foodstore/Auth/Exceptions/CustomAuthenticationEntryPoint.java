@@ -12,6 +12,9 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * A custom response for those unauthenticated request.
+ */
 @Component
 public class CustomAuthenticationEntryPoint implements AuthenticationEntryPoint {
     private final ObjectMapper objectMapper = new ObjectMapper();

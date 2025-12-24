@@ -9,21 +9,10 @@ public class AuthResponse {
     private String refreshToken;
     private String role;
 
-    public AuthResponse() {}
-
     public AuthResponse(String message) {
         this.message = message;
     }
 
-    public AuthResponse(Long userId, String name, String phoneNumber, String message, String token, String role) {
-        this.userId = userId;
-        this.name = name;
-        this.phoneNumber = phoneNumber;
-        this.message = message;
-        this.token = token;
-        this.role = role;
-    }
-    
     public AuthResponse(Long userId, String name, String phoneNumber, String message, String token, String refreshToken, String role) {
         this.userId = userId;
         this.name = name;

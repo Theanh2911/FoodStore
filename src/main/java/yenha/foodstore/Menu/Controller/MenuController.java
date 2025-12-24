@@ -35,6 +35,9 @@ public class MenuController {
     @Autowired
     private S3Service s3Service;
 
+    /**
+     * GET all categories
+     */
     @GetMapping("/categories")
     public ResponseEntity<List<Category>> getAllCategories() {
         try {
@@ -45,6 +48,9 @@ public class MenuController {
         }
     }
 
+    /**
+     * GET categories by id, use for classify food
+     */
     @GetMapping("/categories/{id}")
     public ResponseEntity<Category> getCategoryById(@PathVariable Long id) {
         try {
@@ -69,6 +75,9 @@ public class MenuController {
         }
     }
 
+    /**
+     * Create new categories
+     */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping("/categories/create")
     public ResponseEntity<Category> createCategory(@RequestBody Category category) {
@@ -132,6 +141,9 @@ public class MenuController {
         }
     }
 
+    /**
+     * GET products by category ID
+     */
     @GetMapping("/products/category/{categoryId}")
     public ResponseEntity<List<Product>> getProductsByCategory(@PathVariable Long categoryId) {
         try {
@@ -142,6 +154,9 @@ public class MenuController {
         }
     }
 
+    /**
+     * Create new product with image upload or image URL
+     */
     @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/products/create", consumes = {"multipart/form-data"})
     public ResponseEntity<?> createProduct(
@@ -258,25 +273,6 @@ public class MenuController {
         } catch (Exception e) {
             Map<String, String> error = new HashMap<>();
             error.put("error",e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @GetMapping("/products/can-delete/{id}")
-    public ResponseEntity<?> canDeleteProduct(@PathVariable Long id) {
-        try {
-            boolean canDelete = productService.canDeleteProduct(id);
-            Map<String, Object> response = new HashMap<>();
-            response.put("canDelete", canDelete);
-            if (!canDelete && productService.existsById(id)) {
-                response.put("reason", "Product is referenced in existing orders");
-            } else if (!productService.existsById(id)) {
-                response.put("reason", "Product not found");
-            }
-            return new ResponseEntity<>(response, HttpStatus.OK);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Internal server error: " + e.getMessage());
             return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
         }
     }

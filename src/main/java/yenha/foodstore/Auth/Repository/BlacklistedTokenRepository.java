@@ -19,7 +19,6 @@ public interface BlacklistedTokenRepository extends JpaRepository<BlacklistedTok
     
     /**
      * Delete all tokens that have expired
-     * This helps keep the database clean
      */
     @Modifying
     @Transactional
@@ -27,7 +26,7 @@ public interface BlacklistedTokenRepository extends JpaRepository<BlacklistedTok
     int deleteExpiredTokens(LocalDateTime currentTime);
     
     /**
-     * Count expired tokens (for monitoring before cleanup)
+     * Count expired tokens
      */
     @Query("SELECT COUNT(b) FROM BlacklistedToken b WHERE b.expirationTime < :currentTime")
     long countExpiredTokens(LocalDateTime currentTime);

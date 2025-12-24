@@ -22,7 +22,6 @@ public class S3Config {
 
     @Bean
     public S3Client s3Client() {
-        // Validate that all required environment variables are present
         if (accessKey == null || accessKey.isEmpty()) {
             throw new IllegalStateException("AWS_ACCESS_KEY_ID must be set in .env file");
         }
