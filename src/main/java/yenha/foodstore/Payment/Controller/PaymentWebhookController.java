@@ -17,10 +17,10 @@ public class PaymentWebhookController {
     private final PaymentService paymentService;
     
     /**
-     * Webhook endpoint để nhận thông báo từ SePay khi có giao dịch
+     * This endpoint used to receive webhook from SePay
      * POST /api/payment/webhook/sepay
      * 
-     * Webhook này sẽ được SePay gọi khi có giao dịch chuyển tiền vào tài khoản
+     * SePay will call this webhook when there is a transaction update
      * Content: {"gateway":"MBBank","transactionDate":"2025-12-22 09:22:00",
      *           "accountNumber":"696291102","subAccount":null,"code":"YHF36",
      *           "content":"YHF36","transferType":"in","description":"BankAPINotify YHF36",
@@ -41,14 +41,9 @@ public class PaymentWebhookController {
         log.info("============================================================");
         
         try {
-            // Gọi service xử lý webhook (synchronous)
             paymentService.processWebhook(webhook);
-            
             log.info("Webhook processed successfully for id: {}", webhook.getId());
-            
-            // Trả về response cho SePay
             return ResponseEntity.ok(new WebhookResponseDTO(true, "OK"));
-            
         } catch (Exception e) {
             log.error("============================================================");
             log.error("ERROR processing webhook: {}", e.getMessage());

@@ -17,17 +17,8 @@ public class PaymentSSEController {
     private final SSEService sseService;
     
     /**
-     * SSE endpoint để FE subscribe theo dõi trạng thái thanh toán
+     * This endpoint will track the progress of payment for a specific order in a real-time manner using Server-Sent Events (SSE).
      * GET /api/payment/events/{orderId}
-     * 
-     * Cách FE sử dụng:
-     * const eventSource = new EventSource('/api/payment/events/123');
-     * eventSource.addEventListener('payment-status', (event) => {
-     *     const data = JSON.parse(event.data);
-     *     if (data.status === 'SUCCESS') {
-     *         // Hiển thị thanh toán thành công
-     *     }
-     * });
      */
     @GetMapping(value = "/events/{orderId}", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter subscribePaymentEvents(@PathVariable Long orderId) {
@@ -36,7 +27,7 @@ public class PaymentSSEController {
     }
     
     /**
-     * Kiểm tra có client đang subscribe không
+     * Check if client is listening
      */
     @GetMapping("/events/{orderId}/status")
     public ResponseEntity<Boolean> checkSubscriptionStatus(@PathVariable Long orderId) {
@@ -44,4 +35,8 @@ public class PaymentSSEController {
         return ResponseEntity.ok(hasActiveEmitter);
     }
 }
+
+
+
+
 
