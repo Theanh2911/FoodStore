@@ -132,8 +132,7 @@ public class BankController {
 
     /**
      * Generate VietQR payment URL
-     * Example: POST /api/banks/generate-qr
-     * Body: { "amount": 30000, "addInfo": "Thanh toan HD001" }
+     * Body: { "amount": 30000, "addInfo": "YHF001" }
      */
     @PostMapping("/generate-qr")
     public ResponseEntity<QRCodeResponseDTO> generateQRCode(@RequestBody QRCodeRequestDTO requestDTO) {
