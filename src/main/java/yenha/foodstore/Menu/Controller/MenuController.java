@@ -278,124 +278,6 @@ public class MenuController {
     }
 
     @PreAuthorize("hasRole('ADMIN')")
-    @PostMapping(value = "/products/create-with-image")
-    public ResponseEntity<?> createProductFlexible(
-            @RequestParam("name") String name,
-            @RequestParam("price") Double price,
-            @RequestParam("categoryId") Long categoryId,
-            @RequestParam(value = "image", required = false) MultipartFile imageFile) {
-
-        try {
-            ProductDTO productDTO = new ProductDTO();
-            productDTO.setName(name);
-            productDTO.setPrice(price);
-            productDTO.setCategoryId(categoryId);
-
-            if (name == null || name.trim().isEmpty()) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Product name is required");
-                return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-            }
-            if (price == null || price <= 0) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Product price must be positive");
-                return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-            }
-            if (categoryId == null) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", "Category ID is required");
-                return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-            }
-
-            if (imageFile != null && !imageFile.isEmpty()) {
-                String imageUrl = s3Service.uploadFile(imageFile);
-                productDTO.setImage(imageUrl);
-            }
-
-            Product savedProduct = productService.saveProductFromDTO(productDTO);
-            return new ResponseEntity<>(savedProduct, HttpStatus.CREATED);
-
-        } catch (IllegalArgumentException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", "Internal server error: " + e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
-    @PutMapping(value = "/products/update-with-image/{id}")
-    public ResponseEntity<?> updateProductFlexible(
-            @PathVariable Long id,
-            @RequestParam(value = "name", required = false) String name,
-            @RequestParam(value = "price", required = false) Double price,
-            @RequestParam(value = "categoryId", required = false) Long categoryId,
-            @RequestParam(value = "image", required = false) MultipartFile imageFile) {
-
-        try {
-            Optional<Product> existingProductOpt = productService.getProductById(id);
-            if (existingProductOpt.isEmpty()) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", Error.PRODUCT_NOT_FOUND);
-                return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-            }
-
-            Product existingProduct = existingProductOpt.get();
-
-            ProductDTO productDTO = new ProductDTO();
-            productDTO.setName(name != null ? name : existingProduct.getName());
-            productDTO.setPrice(price != null ? price : existingProduct.getPrice());
-            productDTO.setCategoryId(categoryId != null ? categoryId : existingProduct.getCategory().getCategoryId());
-            productDTO.setImage(existingProduct.getImage()); // Keep existing image initially
-
-            if (productDTO.getName() == null || productDTO.getName().trim().isEmpty()) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", Error.PRODUCT_NAME_REQUIRE);
-                return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-            }
-            if (productDTO.getPrice() == null || productDTO.getPrice() <= 0) {
-                Map<String, String> error = new HashMap<>();
-                error.put("error", Error.PRODUCT_PRICE_NEGATIVE);
-                return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-            }
-
-            String oldImageUrl = existingProduct.getImage();
-
-            if (imageFile != null && !imageFile.isEmpty()) {
-                String newImageUrl = s3Service.uploadFile(imageFile);
-                productDTO.setImage(newImageUrl);
-
-                if (oldImageUrl != null && !oldImageUrl.isEmpty()) {
-                    s3Service.deleteFile(oldImageUrl);
-                }
-            }
-
-            Product updatedProduct = productService.updateProductFromDTO(id, productDTO);
-            return new ResponseEntity<>(updatedProduct, HttpStatus.OK);
-
-        } catch (IllegalArgumentException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.BAD_REQUEST);
-        } catch (RuntimeException e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
-        } catch (Exception e) {
-            Map<String, String> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return new ResponseEntity<>(error, HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
-
-    @PreAuthorize("hasRole('ADMIN')")
     @PostMapping(value = "/upload-image")
     public ResponseEntity<?> uploadImage(@RequestParam("file") MultipartFile file) {
         try {
@@ -406,11 +288,11 @@ public class MenuController {
             }
 
             String imageUrl = s3Service.uploadFile(file);
-            
+
             Map<String, String> response = new HashMap<>();
             response.put("imageUrl", imageUrl);
             response.put("message", "File uploaded successfully");
-            
+
             return new ResponseEntity<>(response, HttpStatus.OK);
 
         } catch (IllegalArgumentException e) {
@@ -447,7 +329,7 @@ public class MenuController {
                 error.put("error", "Product not found");
                 return new ResponseEntity<>(error, HttpStatus.NOT_FOUND);
             }
-            
+
             return new ResponseEntity<>(HttpStatus.NO_CONTENT);
         } catch (RuntimeException e) {
             Map<String, String> error = new HashMap<>();

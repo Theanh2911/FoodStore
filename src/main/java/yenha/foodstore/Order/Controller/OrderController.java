@@ -37,25 +37,22 @@ public class OrderController {
     }
 
     @PostMapping("/create")
-    public ResponseEntity<?> createOrder(@RequestBody OrderDTO orderDTO, @RequestParam(required = false) String sessionId) {
+    public ResponseEntity<?> createOrder(@RequestBody OrderDTO orderDTO,
+            @RequestParam(required = false) String sessionId) {
         try {
             if (orderDTO.getName() == null || orderDTO.getName().trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Error.ORDER_CUSTOMER_NAME_BLANK);
             }
-            
+
             if (sessionId != null && !sessionId.trim().isEmpty()) {
                 orderDTO.setSessionId(sessionId);
             }
 
-            if ((orderDTO.getSessionId() == null || orderDTO.getSessionId().trim().isEmpty()) && 
-                (orderDTO.getTableNumber() == null || orderDTO.getTableNumber() <= 0)) {
+            if ((orderDTO.getSessionId() == null || orderDTO.getSessionId().trim().isEmpty()) &&
+                    (orderDTO.getTableNumber() == null || orderDTO.getTableNumber() <= 0)) {
                 return ResponseEntity.badRequest().body("Table number is required when no session is provided");
             }
-            
-            if (orderDTO.getTotal() == null || orderDTO.getTotal() <= 0) {
-                return ResponseEntity.badRequest().body(Error.ORDER_TOTAL_INVALID);
-            }
-            
+
             if (orderDTO.getItems() == null || orderDTO.getItems().isEmpty()) {
                 return ResponseEntity.badRequest().body(Error.ORDER_ITEMS_EMPTY);
             }
@@ -65,17 +62,17 @@ public class OrderController {
                     return ResponseEntity.badRequest().body(Error.ORDER_ITEM_QUANTITY_INVALID);
                 }
             }
-            
+
             Order createdOrder = orderService.createOrder(orderDTO);
             OrderResponseDTO responseDTO = orderService.convertToResponseDTO(createdOrder);
 
             orderEventService.broadcastOrderCreated(responseDTO);
-            
+
             return ResponseEntity.status(HttpStatus.CREATED).body(responseDTO);
-            
+
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(e.getMessage());
+                    .body(e.getMessage());
         }
     }
 
@@ -84,8 +81,8 @@ public class OrderController {
     public ResponseEntity<List<OrderResponseDTO>> getAllOrders() {
         List<Order> orders = orderService.getAllOrders();
         List<OrderResponseDTO> responseDTOs = orders.stream()
-            .map(orderService::convertToResponseDTO)
-            .collect(java.util.stream.Collectors.toList());
+                .map(orderService::convertToResponseDTO)
+                .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(responseDTOs);
     }
 
@@ -105,8 +102,8 @@ public class OrderController {
     public ResponseEntity<List<OrderResponseDTO>> getOrdersByStatus(@PathVariable OrderStatus status) {
         List<Order> orders = orderService.getOrdersByStatus(status);
         List<OrderResponseDTO> responseDTOs = orders.stream()
-            .map(orderService::convertToResponseDTO)
-            .collect(java.util.stream.Collectors.toList());
+                .map(orderService::convertToResponseDTO)
+                .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(responseDTOs);
     }
 
@@ -115,8 +112,8 @@ public class OrderController {
     public ResponseEntity<List<OrderResponseDTO>> getOrdersByTableNumber(@PathVariable Integer tableNumber) {
         List<Order> orders = orderService.getOrdersByTableNumber(tableNumber);
         List<OrderResponseDTO> responseDTOs = orders.stream()
-            .map(orderService::convertToResponseDTO)
-            .collect(java.util.stream.Collectors.toList());
+                .map(orderService::convertToResponseDTO)
+                .collect(java.util.stream.Collectors.toList());
         return ResponseEntity.ok(responseDTOs);
     }
 
@@ -129,19 +126,18 @@ public class OrderController {
 
             // Gửi ORDER SSE event (cho staff dashboard)
             orderEventService.broadcastOrderStatusChanged(responseDTO);
-            
+
             // Nếu chuyển sang PAID, gửi PAYMENT SSE event (cho customer waiting page)
             if (statusUpdate.getStatus() == OrderStatus.PAID) {
                 PaymentEventDTO paymentEvent = PaymentEventDTO.success(
-                    orderId,
-                    null,  // Không có paymentId (thanh toán thủ công)
-                    updatedOrder.getTotalAmount(),
-                    "MANUAL", // Gateway: MANUAL cho thanh toán thủ công
-                    LocalDateTime.now().toString()
-                );
+                        orderId,
+                        null, // Không có paymentId (thanh toán thủ công)
+                        updatedOrder.getTotalAmount(),
+                        "MANUAL", // Gateway: MANUAL cho thanh toán thủ công
+                        LocalDateTime.now().toString());
                 sseService.sendPaymentEvent(orderId, paymentEvent);
             }
-            
+
             return ResponseEntity.ok(responseDTO);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

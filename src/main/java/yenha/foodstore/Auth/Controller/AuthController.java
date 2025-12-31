@@ -28,16 +28,16 @@ import java.util.stream.Collectors;
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
-    
+
     @Autowired
     private UserService userService;
-    
+
     @Autowired
     private OrderService orderService;
-    
+
     @Autowired
     private JwtUtils jwtUtils;
-    
+
     @Autowired
     private TokenBlacklistService tokenBlacklistService;
 
@@ -49,7 +49,7 @@ public class AuthController {
     public ResponseEntity<AuthResponse> register(@RequestBody RegisterRequest request) {
         try {
             AuthResponse response = userService.adminRegister(request);
-            
+
             if (response.getUserId() != null) {
                 return ResponseEntity.ok(response);
             } else {
@@ -86,7 +86,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(@RequestBody LoginRequest request) {
         AuthResponse response = userService.login(request);
-        
+
         if (response.getUserId() != null) {
             return ResponseEntity.ok(response);
         } else {
@@ -99,31 +99,16 @@ public class AuthController {
      */
     @PostMapping("/logout")
     public ResponseEntity<Map<String, String>> logout(@RequestHeader("Authorization") String authHeader) {
-        Map<String, String> response = new HashMap<>();
-        
         try {
-            if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-                response.put("message", "Invalid authorization header");
+            Map<String, String> response = userService.logout(authHeader);
+
+            if (response.containsKey("error")) {
                 return ResponseEntity.badRequest().body(response);
             }
-            
-            String token = authHeader.substring(7);
-            
-            try {
-                Claims claims = jwtUtils.extractClaims(token, claims1 -> claims1);
-                Date expiration = claims.getExpiration();
-                String tokenType = jwtUtils.getTokenType(token);
-                
-                tokenBlacklistService.blacklistToken(token, expiration.getTime(),
-                        tokenType != null ? tokenType : "access");
-                
-                response.put("message", "Logged out successfully");
-                return ResponseEntity.ok(response);
-            } catch (JwtException e) {
-                response.put("message", "Invalid token");
-                return ResponseEntity.badRequest().body(response);
-            }
+
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
             response.put("message", "Logout failed: " + e.getMessage());
             return ResponseEntity.status(500).body(response);
         }
@@ -135,48 +120,28 @@ public class AuthController {
     @PostMapping("/refresh")
     public ResponseEntity<?> refreshToken(@RequestBody Map<String, String> request) {
         String refreshToken = request.get("refreshToken");
-        
+
+        // Validation only
         if (refreshToken == null || refreshToken.isEmpty()) {
             return ResponseEntity.badRequest().body(Map.of("message", "Refresh token is required"));
         }
-        
+
         try {
-            if (tokenBlacklistService.isTokenBlacklisted(refreshToken)) {
-                return ResponseEntity.status(401).body(Map.of("message", "Token is blacklisted"));
+            AuthResponse response = userService.refreshToken(refreshToken);
+
+            // Check if business logic returned success or error
+            if (response.getUserId() == null) {
+                // Error response - check message for specific error type
+                String message = response.getMessage();
+                if (message.contains("blacklisted") || message.contains("expired") || message.contains("not found")) {
+                    return ResponseEntity.status(401).body(Map.of("message", message));
+                } else if (message.contains("Invalid") || message.contains("required")) {
+                    return ResponseEntity.badRequest().body(Map.of("message", message));
+                }
+                return ResponseEntity.status(500).body(Map.of("message", message));
             }
 
-            if (!jwtUtils.isRefreshToken(refreshToken)) {
-                return ResponseEntity.badRequest().body(Map.of("message", "Invalid refresh token"));
-            }
-
-            String phoneNumber = jwtUtils.getUsernameFromToken(refreshToken);
-
-            Optional<User> userOpt = userService.findByPhoneNumber(phoneNumber);
-            if (userOpt.isEmpty()) {
-                return ResponseEntity.status(401).body(Map.of("message", "User not found"));
-            }
-            
-            User user = userOpt.get();
-
-            String newAccessToken = jwtUtils.generateToken(user.getPhoneNumber(), user.getRole().name());
-            String newRefreshToken = jwtUtils.generateRefreshToken(user.getPhoneNumber(), user.getRole().name());
-
-            Claims claims = jwtUtils.extractClaims(refreshToken, claims1 -> claims1);
-            tokenBlacklistService.blacklistToken(refreshToken, claims.getExpiration().getTime(), "refresh");
-            
-            AuthResponse response = new AuthResponse(
-                user.getId(),
-                user.getName(),
-                user.getPhoneNumber(),
-                "Token refreshed successfully",
-                newAccessToken,
-                newRefreshToken,
-                user.getRole().name()
-            );
-            
             return ResponseEntity.ok(response);
-        } catch (JwtException e) {
-            return ResponseEntity.status(401).body(Map.of("message", "Invalid or expired refresh token"));
         } catch (Exception e) {
             return ResponseEntity.status(500).body(Map.of("message", "Token refresh failed: " + e.getMessage()));
         }
@@ -188,12 +153,12 @@ public class AuthController {
     @GetMapping("/orders/{userId}")
     public ResponseEntity<List<OrderResponseDTO>> getOrderHistory(@PathVariable Long userId) {
         String userIdStr = userId.toString();
-        
+
         List<Order> orders = orderService.getOrdersByUserId(userIdStr);
         List<OrderResponseDTO> responseDTOs = orders.stream()
-            .map(orderService::convertToResponseDTO)
-            .collect(Collectors.toList());
-            
+                .map(orderService::convertToResponseDTO)
+                .collect(Collectors.toList());
+
         return ResponseEntity.ok(responseDTOs);
     }
 

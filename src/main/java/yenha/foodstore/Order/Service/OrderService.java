@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class OrderService {
-    
+
     private final OrderRepository orderRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
@@ -39,7 +39,7 @@ public class OrderService {
     public Order createOrder(OrderDTO orderDTO) {
 
         Order order = new Order();
-        
+
         // Auto-map customer name from userId if provided
         String customerName = orderDTO.getName(); // Default to provided name
         if (orderDTO.getUserId() != null && !orderDTO.getUserId().trim().isEmpty()) {
@@ -56,7 +56,7 @@ public class OrderService {
                 throw new RuntimeException("Invalid user ID format: " + orderDTO.getUserId());
             }
         }
-        
+
         order.setCustomerName(customerName);
 
         Integer tableNumber = orderDTO.getTableNumber();
@@ -68,53 +68,67 @@ public class OrderService {
                 throw new RuntimeException("Invalid or inactive session: " + orderDTO.getSessionId());
             }
         }
-        
+
         order.setTableNumber(tableNumber);
-        order.setTotalAmount(orderDTO.getTotal());
         order.setOrderTime(LocalDateTime.now());
         order.setStatus(OrderStatus.PENDING);
 
-        order = orderRepository.save(order);
-
+        // Calculate total amount from products
+        double totalAmount = 0.0;
         List<OrderItem> orderItems = new ArrayList<>();
+
         for (OrderItemDTO itemDTO : orderDTO.getItems()) {
             Optional<Product> productOpt = productRepository.findById(itemDTO.getProductId());
-            if (productOpt.isPresent()) {
-                OrderItem orderItem = new OrderItem();
-                orderItem.setOrder(order);
-                orderItem.setProduct(productOpt.get());
-                orderItem.setQuantity(itemDTO.getQuantity());
-                orderItem.setNote(itemDTO.getNote());
-                orderItems.add(orderItem);
+            if (!productOpt.isPresent()) {
+                throw new RuntimeException("Product not found with ID: " + itemDTO.getProductId());
             }
+
+            Product product = productOpt.get();
+            OrderItem orderItem = new OrderItem();
+            orderItem.setOrder(order);
+            orderItem.setProduct(product);
+            orderItem.setQuantity(itemDTO.getQuantity());
+            orderItem.setPriceAtPurchase(product.getPrice()); // Save price at purchase time
+            orderItem.setNote(itemDTO.getNote());
+
+            // Calculate total: price * quantity
+            totalAmount += product.getPrice() * itemDTO.getQuantity();
+            orderItems.add(orderItem);
         }
 
+        // Set calculated total amount
+        order.setTotalAmount(totalAmount);
+
+        // Save order first to get the ID
+        order = orderRepository.save(order);
+
+        // Now save order items
         orderItemRepository.saveAll(orderItems);
         order.setItems(orderItems);
-        
+
         return order;
     }
-    
+
     public List<Order> getAllOrders() {
         return orderRepository.findAll();
     }
-    
+
     public Optional<Order> getOrderById(Long orderId) {
         return orderRepository.findById(orderId);
     }
-    
+
     public List<Order> getOrdersByStatus(OrderStatus status) {
         return orderRepository.findByStatus(status);
     }
-    
+
     public List<Order> getOrdersByTableNumber(Integer tableNumber) {
         return orderRepository.findByTableNumber(tableNumber);
     }
-    
+
     public List<Order> getOrdersByUserId(String userId) {
         return orderRepository.findByUserIdOrderByOrderTimeDesc(userId);
     }
-    
+
     @Transactional
     public Order updateOrderStatus(Long orderId, OrderStatus status) {
         Optional<Order> orderOpt = orderRepository.findById(orderId);
@@ -125,7 +139,7 @@ public class OrderService {
         }
         throw new RuntimeException("Order not found with id: " + orderId);
     }
-    
+
     public OrderResponseDTO convertToResponseDTO(Order order) {
         OrderResponseDTO responseDTO = new OrderResponseDTO();
         responseDTO.setOrderId(order.getOrderId());
@@ -134,23 +148,23 @@ public class OrderService {
         responseDTO.setTotalAmount(order.getTotalAmount());
         responseDTO.setOrderTime(order.getOrderTime());
         responseDTO.setStatus(order.getStatus());
-        
+
         if (order.getItems() != null) {
             List<OrderItemResponseDTO> itemDTOs = order.getItems().stream()
-                .map(this::convertToItemResponseDTO)
-                .collect(Collectors.toList());
+                    .map(this::convertToItemResponseDTO)
+                    .collect(Collectors.toList());
             responseDTO.setItems(itemDTOs);
         }
-        
+
         return responseDTO;
     }
-    
+
     private OrderItemResponseDTO convertToItemResponseDTO(OrderItem orderItem) {
         OrderItemResponseDTO itemDTO = new OrderItemResponseDTO();
         itemDTO.setOrderItemId(orderItem.getOrderItemId());
         itemDTO.setProductId(orderItem.getProduct().getProductId());
         itemDTO.setProductName(orderItem.getProduct().getName());
-        itemDTO.setProductPrice(orderItem.getProduct().getPrice());
+        itemDTO.setProductPrice(orderItem.getPriceAtPurchase()); // Use price at purchase, not current price
         itemDTO.setQuantity(orderItem.getQuantity());
         itemDTO.setNote(orderItem.getNote());
         return itemDTO;
