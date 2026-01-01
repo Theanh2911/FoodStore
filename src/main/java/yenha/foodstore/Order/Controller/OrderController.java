@@ -1,6 +1,7 @@
 package yenha.foodstore.Order.Controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
+@Slf4j
 @RestController
 @RequestMapping("/api/orders")
 @RequiredArgsConstructor
@@ -34,6 +36,16 @@ public class OrderController {
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamOrders(@RequestParam(defaultValue = "default") String clientId) {
         return orderEventService.createEmitter(clientId);
+    }
+
+    /**
+     * SSE endpoint for tracking individual order status
+     * Used by customer to track their specific order's payment/status updates
+     */
+    @GetMapping(value = "/{orderId}/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
+    public SseEmitter streamOrderStatus(@PathVariable Long orderId) {
+        log.info("Client subscribing to order status stream for orderId: {}", orderId);
+        return sseService.createEmitter(orderId);
     }
 
     @PostMapping("/create")
