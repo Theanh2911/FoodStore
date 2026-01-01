@@ -24,7 +24,13 @@ public class ProductService {
     @Autowired
     private OrderItemRepository orderItemRepository;
 
+    // For customer-facing endpoints - only active products
     public List<Product> getAllProducts() {
+        return productRepository.findByIsActiveTrue();
+    }
+
+    // For admin panel - all products including inactive
+    public List<Product> getAllProductsIncludingInactive() {
         return productRepository.findAll();
     }
 
@@ -32,66 +38,22 @@ public class ProductService {
         return productRepository.findById(id);
     }
 
-    public List<Product> getProductsByCategory(Category category) {
-        return productRepository.findByCategory(category);
-    }
-
     public List<Product> getProductsByCategoryId(Long categoryId) {
-        return productRepository.findByCategoryCategoryId(categoryId);
-    }
-
-    public List<Product> searchProductsByName(String name) {
-        return productRepository.findByNameContaining(name);
-    }
-
-    public List<Product> getProductsByPriceRange(Double minPrice, Double maxPrice) {
-        return productRepository.findByPriceBetween(minPrice, maxPrice);
-    }
-
-    public Product saveProduct(Product product) {
-
-        if (product.getCategory() != null && product.getCategory().getCategoryId() != null) {
-            Optional<Category> category = categoryService.getCategoryById(product.getCategory().getCategoryId());
-            if (category.isPresent()) {
-                product.setCategory(category.get());
-            } else {
-                throw new RuntimeException(Error.CATEGORY_NOT_FOUND + product.getCategory().getCategoryId());
-            }
-        }
-        return productRepository.save(product);
-    }
-
-    public Product updateProduct(Long id, Product productDetails) {
-        Optional<Product> optionalProduct = productRepository.findById(id);
-        if (optionalProduct.isPresent()) {
-            Product existingProduct = optionalProduct.get();
-            existingProduct.setName(productDetails.getName());
-            existingProduct.setPrice(productDetails.getPrice());
-            existingProduct.setImage(productDetails.getImage());
-
-            if (productDetails.getCategory() != null && productDetails.getCategory().getCategoryId() != null) {
-                Optional<Category> category = categoryService.getCategoryById(productDetails.getCategory().getCategoryId());
-                if (category.isPresent()) {
-                    existingProduct.setCategory(category.get());
-                } else {
-                    throw new RuntimeException(Error.CATEGORY_NOT_FOUND + productDetails.getCategory().getCategoryId());
-                }
-            }
-            
-            return productRepository.save(existingProduct);
-        }
-        throw new RuntimeException(Error.PRODUCT_NOT_FOUND + id);
-    }
-
-    public boolean existsById(Long id) {
-        return productRepository.existsById(id);
-    }
-
-    public boolean canDeleteProduct(Long id) {
-        return productRepository.existsById(id) && !orderItemRepository.existsByProductProductId(id);
+        return productRepository.findByCategoryCategoryIdAndIsActiveTrue(categoryId);
     }
 
     public void deleteProduct(Long id) {
+        Optional<Product> productOpt = productRepository.findById(id);
+        if (!productOpt.isPresent()) {
+            throw new RuntimeException(Error.PRODUCT_NOT_FOUND + id);
+        }
+
+        Product product = productOpt.get();
+        product.setIsActive(false);
+        productRepository.save(product);
+    }
+
+    public void hardDeleteProduct(Long id) {
         if (!productRepository.existsById(id)) {
             throw new RuntimeException(Error.PRODUCT_NOT_FOUND + id);
         }
@@ -99,7 +61,7 @@ public class ProductService {
         if (orderItemRepository.existsByProductProductId(id)) {
             throw new RuntimeException(Error.PRODUCT_CANNOT_BE_DELETED + id);
         }
-        
+
         productRepository.deleteById(id);
     }
 
@@ -108,6 +70,7 @@ public class ProductService {
         product.setName(productDTO.getName());
         product.setPrice(productDTO.getPrice());
         product.setImage(productDTO.getImage());
+        product.setIsActive(true); // New products are active by default
 
         if (productDTO.getCategoryId() != null) {
             Optional<Category> category = categoryService.getCategoryById(productDTO.getCategoryId());
@@ -117,7 +80,7 @@ public class ProductService {
                 throw new RuntimeException(Error.CATEGORY_NOT_FOUND + productDTO.getCategoryId());
             }
         }
-        
+
         return productRepository.save(product);
     }
 
@@ -137,7 +100,7 @@ public class ProductService {
                     throw new RuntimeException(Error.CATEGORY_NOT_FOUND + productDTO.getCategoryId());
                 }
             }
-            
+
             return productRepository.save(existingProduct);
         }
         throw new RuntimeException(Error.PRODUCT_NOT_FOUND + id);
@@ -154,5 +117,5 @@ public class ProductService {
         }
         return dto;
     }
-}
 
+}

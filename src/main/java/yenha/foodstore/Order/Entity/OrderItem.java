@@ -28,5 +28,8 @@ public class OrderItem {
     @Column(name = "price_at_purchase", nullable = false)
     private Double priceAtPurchase;
 
+    @Column(name = "product_name_at_purchase", nullable = false)
+    private String productNameAtPurchase;
+
     private String note;
 }

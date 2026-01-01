@@ -84,11 +84,18 @@ public class OrderService {
             }
 
             Product product = productOpt.get();
+
+            // Validate product is active (not soft deleted)
+            if (product.getIsActive() == null || !product.getIsActive()) {
+                throw new RuntimeException("Product is no longer available: " + product.getName());
+            }
+
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
             orderItem.setProduct(product);
             orderItem.setQuantity(itemDTO.getQuantity());
             orderItem.setPriceAtPurchase(product.getPrice()); // Save price at purchase time
+            orderItem.setProductNameAtPurchase(product.getName()); // Save product name at purchase time
             orderItem.setNote(itemDTO.getNote());
 
             // Calculate total: price * quantity
@@ -163,7 +170,7 @@ public class OrderService {
         OrderItemResponseDTO itemDTO = new OrderItemResponseDTO();
         itemDTO.setOrderItemId(orderItem.getOrderItemId());
         itemDTO.setProductId(orderItem.getProduct().getProductId());
-        itemDTO.setProductName(orderItem.getProduct().getName());
+        itemDTO.setProductName(orderItem.getProductNameAtPurchase()); // Use saved name at purchase time
         itemDTO.setProductPrice(orderItem.getPriceAtPurchase()); // Use price at purchase, not current price
         itemDTO.setQuantity(orderItem.getQuantity());
         itemDTO.setNote(orderItem.getNote());
