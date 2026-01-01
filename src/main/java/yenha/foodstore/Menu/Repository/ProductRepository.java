@@ -9,9 +9,24 @@ import java.util.List;
 
 @Repository
 public interface ProductRepository extends JpaRepository<Product, Long> {
-    List<Product> findByCategory(Category category);
-    List<Product> findByCategoryCategoryId(Long categoryId);
-    List<Product> findByNameContaining(String name);
-    List<Product> findByPriceBetween(Double minPrice, Double maxPrice);
-}
+    // Find all active products
+    List<Product> findByIsActiveTrue();
 
+    // Original methods (keep for admin panel - show all)
+    List<Product> findByCategory(Category category);
+
+    List<Product> findByCategoryCategoryId(Long categoryId);
+
+    List<Product> findByNameContaining(String name);
+
+    List<Product> findByPriceBetween(Double minPrice, Double maxPrice);
+
+    // Active products only
+    List<Product> findByCategoryAndIsActiveTrue(Category category);
+
+    List<Product> findByCategoryCategoryIdAndIsActiveTrue(Long categoryId);
+
+    List<Product> findByNameContainingAndIsActiveTrue(String name);
+
+    List<Product> findByPriceBetweenAndIsActiveTrue(Double minPrice, Double maxPrice);
+}
