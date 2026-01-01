@@ -139,6 +139,9 @@ public class OrderController {
             // Gửi ORDER SSE event (cho staff dashboard)
             orderEventService.broadcastOrderStatusChanged(responseDTO);
 
+            // Gửi ORDER STATUS event tới customer đang theo dõi order này (nếu có)
+            sseService.sendOrderStatusEvent(orderId, responseDTO);
+
             // Nếu chuyển sang PAID, gửi PAYMENT SSE event (cho customer waiting page)
             if (statusUpdate.getStatus() == OrderStatus.PAID) {
                 PaymentEventDTO paymentEvent = PaymentEventDTO.success(

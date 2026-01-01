@@ -105,6 +105,33 @@ public class SSEService {
     }
 
     /**
+     * Gửi event cập nhật trạng thái đơn hàng tới FE
+     * 
+     * @param orderId   ID đơn hàng
+     * @param orderData Order data (OrderResponseDTO)
+     */
+    public void sendOrderStatusEvent(Long orderId, Object orderData) {
+        SseEmitter emitter = emitters.get(orderId);
+
+        if (emitter != null) {
+            try {
+                emitter.send(SseEmitter.event()
+                        .name("order-status-changed")
+                        .data(orderData));
+
+                log.info("SSE: Sent order status event for orderId: {}", orderId);
+
+            } catch (IOException e) {
+                log.error("SSE: Error sending order status event for orderId: {}", orderId, e);
+                emitter.completeWithError(e);
+                emitters.remove(orderId);
+            }
+        } else {
+            log.debug("SSE: No emitter found for orderId: {} (customer may not be tracking)", orderId);
+        }
+    }
+
+    /**
      * Kiểm tra có client đang subscribe cho orderId không
      */
     public boolean hasActiveEmitter(Long orderId) {
