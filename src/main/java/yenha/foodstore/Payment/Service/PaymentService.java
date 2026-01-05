@@ -4,9 +4,12 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import yenha.foodstore.Order.DTO.OrderResponseDTO;
 import yenha.foodstore.Order.Entity.Order;
 import yenha.foodstore.Order.Entity.OrderStatus;
 import yenha.foodstore.Order.Repository.OrderRepository;
+import yenha.foodstore.Order.Service.OrderEventService;
+import yenha.foodstore.Order.Service.OrderService;
 import yenha.foodstore.Payment.DTO.PaymentEventDTO;
 import yenha.foodstore.Payment.DTO.SepayWebhookDTO;
 import yenha.foodstore.Payment.Entity.Payment;
@@ -23,15 +26,18 @@ import java.util.regex.Pattern;
 @RequiredArgsConstructor
 @Slf4j
 public class PaymentService {
-    
+
     private final PaymentRepository paymentRepository;
     private final OrderRepository orderRepository;
     private final SSEService sseService;
+    private final OrderEventService orderEventService;
+    private final OrderService orderService;
 
     private static final Pattern ORDER_ID_PATTERN = Pattern.compile("YHF\\s*(\\d+)", Pattern.CASE_INSENSITIVE);
-    
+
     /**
      * Xử lý webhook từ SePay
+     * 
      * @param webhook Data từ SePay
      */
     @Transactional
@@ -42,18 +48,18 @@ public class PaymentService {
         }
         if (!validateWebhook(webhook)) {
             log.error("Invalid webhook data - transferType: {}, amount: {}",
-                webhook.getTransferType(), webhook.getTransferAmount());
+                    webhook.getTransferType(), webhook.getTransferAmount());
             saveFailedPayment(webhook, "Invalid webhook data");
             return;
         }
 
         log.info("Extracting orderId from code='{}' or content='{}'...",
-            webhook.getCode(), webhook.getContent());
+                webhook.getCode(), webhook.getContent());
         Long orderId = extractOrderId(webhook);
 
         if (orderId == null) {
             log.error("Cannot extract orderId from webhook. Code='{}', Content='{}'",
-                webhook.getCode(), webhook.getContent());
+                    webhook.getCode(), webhook.getContent());
             saveFailedPayment(webhook, "Cannot extract orderId");
             return;
         }
@@ -68,22 +74,22 @@ public class PaymentService {
 
         Order order = orderOpt.get();
         log.info("Order details: id={}, status={}, totalAmount={}",
-            order.getOrderId(), order.getStatus(), order.getTotalAmount());
+                order.getOrderId(), order.getStatus(), order.getTotalAmount());
 
         if (order.getStatus() != OrderStatus.SERVED) {
             log.error("Order status is not SERVED. Current status: {}, orderId: {}",
-                order.getStatus(), orderId);
+                    order.getStatus(), orderId);
             saveFailedPayment(webhook, "Order must be SERVED before payment. Current status: " + order.getStatus());
             sseService.sendPaymentEvent(orderId, PaymentEventDTO.failed(orderId, "Đơn hàng chưa được phục vụ"));
             return;
         }
 
         log.info("Validating amount: expected={}, received={}",
-            order.getTotalAmount(), webhook.getTransferAmount());
+                order.getTotalAmount(), webhook.getTransferAmount());
         if (!validateAmount(webhook.getTransferAmount(), order.getTotalAmount())) {
             log.error("Amount mismatch. Expected: {}, Got: {}, Difference: {}",
-                order.getTotalAmount(), webhook.getTransferAmount(),
-                Math.abs(webhook.getTransferAmount() - order.getTotalAmount()));
+                    order.getTotalAmount(), webhook.getTransferAmount(),
+                    Math.abs(webhook.getTransferAmount() - order.getTotalAmount()));
             saveAmountMismatchPayment(webhook, orderId);
             sseService.sendPaymentEvent(orderId, PaymentEventDTO.failed(orderId, "Số tiền không khớp"));
             return;
@@ -93,17 +99,22 @@ public class PaymentService {
         updateOrderStatus(order);
 
         PaymentEventDTO event = PaymentEventDTO.success(
-            orderId,
-            payment.getId(),
-            payment.getTransferAmount(),
-            payment.getGateway(),
-            payment.getTransactionDate().toString()
-        );
+                orderId,
+                payment.getId(),
+                payment.getTransferAmount(),
+                payment.getGateway(),
+                payment.getTransactionDate().toString());
 
+        // Gửi payment event cho customer đang theo dõi order này
         sseService.sendPaymentEvent(orderId, event);
 
+        // Broadcast order status change cho staff dashboard
+        OrderResponseDTO orderResponse = orderService.convertToResponseDTO(order);
+        orderEventService.broadcastOrderStatusChanged(orderResponse);
+        log.info("Broadcasted payment success to staff for orderId: {}", orderId);
+
     }
-    
+
     /**
      * Validate webhook data
      */
@@ -117,10 +128,10 @@ public class PaymentService {
             log.warn("Invalid transferAmount: {}", webhook.getTransferAmount());
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * Extract orderId từ content hoặc code
      */
@@ -153,10 +164,10 @@ public class PaymentService {
         }
 
         log.error("Failed to extract orderId from code='{}' or content='{}'",
-            webhook.getCode(), webhook.getContent());
+                webhook.getCode(), webhook.getContent());
         return null;
     }
-    
+
     /**
      * Validate số tiền
      */
@@ -164,11 +175,11 @@ public class PaymentService {
         if (transferAmount == null || expectedAmount == null) {
             return false;
         }
-        
+
         double difference = Math.abs(transferAmount - expectedAmount);
         return difference <= 0;
     }
-    
+
     /**
      * Lưu payment thành công
      */
@@ -184,10 +195,10 @@ public class PaymentService {
         payment.setReferenceCode(webhook.getReferenceCode());
         payment.setDescription(webhook.getDescription());
         payment.setStatus(PaymentStatus.SUCCESS);
-        
+
         return paymentRepository.save(payment);
     }
-    
+
     /**
      * Lưu payment khi số tiền không khớp
      */
@@ -204,10 +215,10 @@ public class PaymentService {
         payment.setDescription(webhook.getDescription());
         payment.setStatus(PaymentStatus.AMOUNT_MISMATCH);
         payment.setErrorMessage("Amount mismatch");
-        
+
         paymentRepository.save(payment);
     }
-    
+
     /**
      * Lưu payment khi thất bại
      */
@@ -223,10 +234,10 @@ public class PaymentService {
         payment.setDescription(webhook.getDescription());
         payment.setStatus(PaymentStatus.FAILED);
         payment.setErrorMessage(errorMessage);
-        
+
         paymentRepository.save(payment);
     }
-    
+
     /**
      * Parse transaction date từ String sang LocalDateTime
      */
@@ -239,7 +250,7 @@ public class PaymentService {
             return LocalDateTime.now();
         }
     }
-    
+
     /**
      * Cập nhật trạng thái Order: SERVED → PAID
      */
@@ -249,8 +260,7 @@ public class PaymentService {
             orderRepository.save(order);
             log.info("Order status updated from SERVED to PAID for orderId: {}", order.getOrderId());
         } else {
-            log.warn("Cannot update order status. Order is not SERVED. Current status: {}, orderId: {}", 
-                order.getStatus(), order.getOrderId());
+            log.warn("Cannot update order status. Order is not SERVED. Current status: {}, orderId: {}", order.getStatus(), order.getOrderId());
         }
     }
 }

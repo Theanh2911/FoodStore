@@ -20,28 +20,40 @@ import java.util.function.Function;
 @Slf4j
 public class JwtUtils {
 
-    private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60L * 30L; //30 minutes
+    private static final long ACCESS_TOKEN_EXPIRATION = 1000L * 60L * 30L; // 30 minutes
     private static final long REFRESH_TOKEN_EXPIRATION = 1000L * 60L * 60L * 12L; // 12 hours
 
     private SecretKey key;
 
     @Value("${secretJwtString}")
-    private String secretJwtString ;
+    private String secretJwtString;
 
     @PostConstruct
-    private void init(){
+    private void init() {
+        if (secretJwtString == null || secretJwtString.trim().isEmpty()) {
+            throw new IllegalStateException(
+                    "No jwt secret found");
+        }
+
         byte[] keyByte = secretJwtString.getBytes(StandardCharsets.UTF_8);
+
+        if (keyByte.length < 32) {
+            throw new IllegalStateException(
+                    String.format(
+                            "Jwt was too short",
+                            keyByte.length));
+        }
         this.key = new SecretKeySpec(keyByte, "HmacSHA256");
     }
 
     /**
      * Gen token with its payload
      */
-    public String generateToken(String phoneNumber, String role){
+    public String generateToken(String phoneNumber, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("type", "access");
-        
+
         return Jwts.builder()
                 .claims(claims)
                 .subject(phoneNumber)
@@ -50,12 +62,12 @@ public class JwtUtils {
                 .signWith(key)
                 .compact();
     }
-    
-    public String generateRefreshToken(String phoneNumber, String role){
+
+    public String generateRefreshToken(String phoneNumber, String role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("type", "refresh");
-        
+
         return Jwts.builder()
                 .claims(claims)
                 .subject(phoneNumber)
@@ -65,31 +77,30 @@ public class JwtUtils {
                 .compact();
     }
 
-    public String getUsernameFromToken(String token){
+    public String getUsernameFromToken(String token) {
         return extractClaims(token, Claims::getSubject);
     }
-    
-    public String getTokenType(String token){
+
+    public String getTokenType(String token) {
         return extractClaims(token, claims -> claims.get("type", String.class));
     }
-    
-    public boolean isRefreshToken(String token){
+
+    public boolean isRefreshToken(String token) {
         String type = getTokenType(token);
         return "refresh".equals(type);
     }
 
-    public <T> T extractClaims(String token, Function<Claims,T> claimsTFunction){
+    public <T> T extractClaims(String token, Function<Claims, T> claimsTFunction) {
         return claimsTFunction.apply(Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload());
     }
-    
-    public boolean isTokenValid(String token, UserDetails userDetails){
+
+    public boolean isTokenValid(String token, UserDetails userDetails) {
         final String username = getUsernameFromToken(token);
         return (username.equals(userDetails.getUsername()) && !isTokenExpired(token));
     }
 
-    private boolean isTokenExpired(String token){
+    private boolean isTokenExpired(String token) {
         return extractClaims(token, Claims::getExpiration).before(new Date());
     }
 
 }
-

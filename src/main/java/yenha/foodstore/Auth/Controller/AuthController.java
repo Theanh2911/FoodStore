@@ -1,7 +1,5 @@
 package yenha.foodstore.Auth.Controller;
 
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.JwtException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
@@ -11,18 +9,14 @@ import yenha.foodstore.Auth.DTO.LoginRequest;
 import yenha.foodstore.Auth.DTO.RegisterRequest;
 import yenha.foodstore.Auth.Entity.Role;
 import yenha.foodstore.Auth.Entity.User;
-import yenha.foodstore.Auth.Security.JwtUtils;
-import yenha.foodstore.Auth.Service.TokenBlacklistService;
 import yenha.foodstore.Auth.Service.UserService;
 import yenha.foodstore.Order.DTO.OrderResponseDTO;
 import yenha.foodstore.Order.Entity.Order;
 import yenha.foodstore.Order.Service.OrderService;
 
-import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @RestController
@@ -34,12 +28,6 @@ public class AuthController {
 
     @Autowired
     private OrderService orderService;
-
-    @Autowired
-    private JwtUtils jwtUtils;
-
-    @Autowired
-    private TokenBlacklistService tokenBlacklistService;
 
     /**
      * Register endpoint for admins
