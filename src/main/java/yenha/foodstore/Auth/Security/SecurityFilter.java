@@ -38,32 +38,31 @@ public class SecurityFilter {
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                                 .authorizeHttpRequests(auth -> auth
-                                                .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                                                .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                                                .requestMatchers(HttpMethod.POST, "/api/auth/client-register")
-                                                .permitAll()
-                                                .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/api/auth/client-register").permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/api/banks/active").permitAll()
 
-                                                .requestMatchers(HttpMethod.POST, "/api/payment/webhook/**").permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/api/payment/webhook/**").permitAll()
 
-                                                .requestMatchers(HttpMethod.GET, "/api/menu/categories/**").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/menu/products/**").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/api/menu/categories/**").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/api/menu/products/**").permitAll()
 
-                                                .requestMatchers(HttpMethod.POST, "/api/orders/create").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}").permitAll()
-                                                .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}/stream")
-                                                .permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/api/orders/create").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}").permitAll()
+                                        .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}/stream").permitAll()
 
-                                                .requestMatchers(HttpMethod.GET, "/api/orders/stream")
-                                                .hasAnyRole("ADMIN", "STAFF")
+                                        .requestMatchers(HttpMethod.GET, "/api/orders/stream")
+                                        .hasAnyRole("ADMIN", "STAFF")
 
-                                                .requestMatchers("/api/menu/**").hasRole("ADMIN")
-                                                .requestMatchers("/api/auth/admin-register").hasRole("ADMIN")
+                                        .requestMatchers("/api/menu/**").hasRole("ADMIN")
+                                        .requestMatchers("/api/auth/admin-register").hasRole("ADMIN")
 
-                                                .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
+                                        .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
 
-                                                .anyRequest().authenticated())
+                                        .anyRequest().authenticated())
 
                                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)
