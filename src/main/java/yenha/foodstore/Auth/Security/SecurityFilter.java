@@ -40,15 +40,19 @@ public class SecurityFilter {
                                 .authorizeHttpRequests(auth -> auth
                                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
+                                        .requestMatchers(HttpMethod.POST, "/api/qr-session/**").permitAll()
+
                                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/auth/client-register").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
-                                        .requestMatchers(HttpMethod.GET, "/api/banks/active").permitAll()
+
 
                                         .requestMatchers(HttpMethod.POST, "/api/payment/webhook/**").permitAll()
 
                                         .requestMatchers(HttpMethod.GET, "/api/menu/categories/**").permitAll()
                                         .requestMatchers(HttpMethod.GET, "/api/menu/products/**").permitAll()
+
+                                        .requestMatchers(HttpMethod.GET, "/api/banks/active").permitAll()
 
                                         .requestMatchers(HttpMethod.POST, "/api/orders/create").permitAll()
                                         .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}").permitAll()
