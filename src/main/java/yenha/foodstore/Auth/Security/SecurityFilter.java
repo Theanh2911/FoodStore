@@ -40,7 +40,7 @@ public class SecurityFilter {
                                 .authorizeHttpRequests(auth -> auth
                                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                                        .requestMatchers(HttpMethod.POST, "/api/qr-session/**").permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/api/session/**").permitAll()
 
                                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/auth/client-register").permitAll()
