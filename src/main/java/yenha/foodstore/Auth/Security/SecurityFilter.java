@@ -58,6 +58,7 @@ public class SecurityFilter {
                                         .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}").permitAll()
                                         .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}/stream").permitAll()
 
+                                        .requestMatchers(HttpMethod.GET,"api/payment/events/**").permitAll()
                                         .requestMatchers(HttpMethod.GET, "/api/orders/stream")
                                         .hasAnyRole("ADMIN", "STAFF")
 
