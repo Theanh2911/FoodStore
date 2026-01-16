@@ -11,7 +11,11 @@ import yenha.foodstore.Auth.DTO.RegisterRequest;
 import yenha.foodstore.Auth.DTO.AuthResponse;
 import yenha.foodstore.Auth.Security.JwtUtils;
 
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -171,5 +175,92 @@ public class UserService {
     
     public Optional<User> findByPhoneNumber(String phoneNumber) {
         return userRepository.findByPhoneNumber(phoneNumber);
+    }
+
+    /**
+     * Logout business logic - parse token and blacklist it
+     *
+     * @param authHeader The Authorization header containing the Bearer token
+     * @return Map with success or error message
+     */
+    @Autowired
+    private TokenBlacklistService tokenBlacklistService;
+
+    public Map<String, String> logout(String authHeader) {
+        Map<String, String> response = new HashMap<>();
+
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            response.put("message", "Invalid authorization header");
+            response.put("error", "true");
+            return response;
+        }
+
+        String token = authHeader.substring(7);
+
+        try {
+            io.jsonwebtoken.Claims claims = jwtUtils.extractClaims(token, claims1 -> claims1);
+            java.util.Date expiration = claims.getExpiration();
+            String tokenType = jwtUtils.getTokenType(token);
+
+            tokenBlacklistService.blacklistToken(token, expiration.getTime(),
+                    tokenType != null ? tokenType : "access");
+
+            response.put("message", "Logged out successfully");
+            return response;
+        } catch (io.jsonwebtoken.JwtException e) {
+            response.put("message", "Invalid token");
+            response.put("error", "true");
+            return response;
+        }
+    }
+
+    /**
+     * Refresh token business logic - validate refresh token and generate new tokens
+     *
+     * @param refreshToken The refresh token to be validated and refreshed
+     * @return AuthResponse with new tokens or error message
+     */
+    public AuthResponse refreshToken(String refreshToken) {
+        if (refreshToken == null || refreshToken.isEmpty()) {
+            return new AuthResponse("Refresh token is required");
+        }
+
+        try {
+            if (tokenBlacklistService.isTokenBlacklisted(refreshToken)) {
+                return new AuthResponse("Token is blacklisted");
+            }
+
+            if (!jwtUtils.isRefreshToken(refreshToken)) {
+                return new AuthResponse("Invalid refresh token");
+            }
+
+            String phoneNumber = jwtUtils.getUsernameFromToken(refreshToken);
+
+            Optional<User> userOpt = findByPhoneNumber(phoneNumber);
+            if (userOpt.isEmpty()) {
+                return new AuthResponse("User not found");
+            }
+
+            User user = userOpt.get();
+
+            String newAccessToken = jwtUtils.generateToken(user.getPhoneNumber(), user.getRole().name());
+            String newRefreshToken = jwtUtils.generateRefreshToken(user.getPhoneNumber(), user.getRole().name());
+
+            io.jsonwebtoken.Claims claims = jwtUtils.extractClaims(refreshToken, claims1 -> claims1);
+            tokenBlacklistService.blacklistToken(refreshToken, claims.getExpiration().getTime(), "refresh");
+
+            return new AuthResponse(
+                    user.getId(),
+                    user.getName(),
+                    user.getPhoneNumber(),
+                    "Token refreshed successfully",
+                    newAccessToken,
+                    newRefreshToken,
+                    user.getRole().name());
+        } catch (io.jsonwebtoken.JwtException e) {
+            return new AuthResponse("Invalid or expired refresh token");
+        } catch (Exception e) {
+            return new AuthResponse("Token refresh failed: " + e.getMessage());
+        }
     }
 }
