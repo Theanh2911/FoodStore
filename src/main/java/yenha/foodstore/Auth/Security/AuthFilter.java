@@ -39,11 +39,11 @@ import java.io.IOException;
                         return;
                     }
                     
-                    String email = jwtUtils.getUsernameFromToken(token);
-                    UserDetails userDetails = customUserDetailsService.loadUserByUsername(email);
+                    String phoneNumber = jwtUtils.getUsernameFromToken(token);
+                    UserDetails userDetails = customUserDetailsService.loadUserByUsername(phoneNumber);
 
-                    if (StringUtils.hasText(email) && jwtUtils.isTokenValid(token, userDetails)) {
-                        log.info("Token is valid, {}", email);
+                    if (StringUtils.hasText(phoneNumber) && jwtUtils.isTokenValid(token, userDetails)) {
+                        log.info("Token is valid for phone number: {}", phoneNumber);
 
                         UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(
                                 userDetails, null, userDetails.getAuthorities()
@@ -60,7 +60,7 @@ import java.io.IOException;
                 filterChain.doFilter(request, response);
 
             } catch (Exception e) {
-                log.error("Error occuerd in AuthFilter: {}", e.getMessage());
+                log.error("Error occurred in AuthFilter: {}", e.getMessage());
             }
 
         }
