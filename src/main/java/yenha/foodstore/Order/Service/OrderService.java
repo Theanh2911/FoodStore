@@ -155,6 +155,7 @@ public class OrderService {
         responseDTO.setTotalAmount(order.getTotalAmount());
         responseDTO.setOrderTime(order.getOrderTime());
         responseDTO.setStatus(order.getStatus());
+        responseDTO.setIsRated(order.getIsRated() != null ? order.getIsRated() : false);
 
         if (order.getItems() != null) {
             List<OrderItemResponseDTO> itemDTOs = order.getItems().stream()
