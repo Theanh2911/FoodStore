@@ -3,10 +3,13 @@ package yenha.foodstore.Auth.Controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import yenha.foodstore.Auth.DTO.AuthResponse;
 import yenha.foodstore.Auth.DTO.LoginRequest;
 import yenha.foodstore.Auth.DTO.RegisterRequest;
+import yenha.foodstore.Auth.DTO.UpdateUserRequest;
+import yenha.foodstore.Auth.DTO.UpdatePasswordRequest;
 import yenha.foodstore.Auth.Entity.Role;
 import yenha.foodstore.Auth.Entity.User;
 import yenha.foodstore.Auth.Service.UserService;
@@ -156,6 +159,91 @@ public class AuthController {
     @PostMapping("/get-users-by-roles")
     public ResponseEntity<List<User>> getUsersByRoles(@RequestBody List<Role> roles) {
         return ResponseEntity.ok(userService.findByRoles(roles));
+    }
+
+    /**
+     * Update user information (name, phone number, password)
+     * Only ADMIN can update users
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @PutMapping("/users/{userId}")
+    public ResponseEntity<Map<String, String>> updateUser(
+            @PathVariable Long userId,
+            @RequestBody UpdateUserRequest request) {
+        try {
+            Map<String, String> response = userService.updateUser(userId, request);
+
+            if (response.containsKey("error")) {
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Update failed: " + e.getMessage());
+            response.put("error", "true");
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * Update password for authenticated user (staff/client can update their own password)
+     * User can only update their own password
+     */
+    @PutMapping("/update-password")
+    public ResponseEntity<Map<String, String>> updatePassword(
+            @RequestBody UpdatePasswordRequest request,
+            Authentication authentication) {
+        try {
+            // Get phone number from authenticated user
+            String phoneNumber = authentication.getName();
+
+            // Find user by phone number
+            java.util.Optional<User> userOpt = userService.findByPhoneNumber(phoneNumber);
+            if (userOpt.isEmpty()) {
+                Map<String, String> response = new HashMap<>();
+                response.put("message", "User not found");
+                response.put("error", "true");
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            Long userId = userOpt.get().getId();
+            Map<String, String> response = userService.updatePassword(userId, request);
+
+            if (response.containsKey("error")) {
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Password update failed: " + e.getMessage());
+            response.put("error", "true");
+            return ResponseEntity.status(500).body(response);
+        }
+    }
+
+    /**
+     * Delete user permanently (hard delete)
+     * Only ADMIN can delete users
+     */
+    @PreAuthorize("hasRole('ADMIN')")
+    @DeleteMapping("/users/{userId}")
+    public ResponseEntity<Map<String, String>> deleteUser(@PathVariable Long userId) {
+        try {
+            Map<String, String> response = userService.deleteUser(userId);
+
+            if (response.containsKey("error")) {
+                return ResponseEntity.badRequest().body(response);
+            }
+
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Delete failed: " + e.getMessage());
+            response.put("error", "true");
+            return ResponseEntity.status(500).body(response);
+        }
     }
 
 }

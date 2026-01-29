@@ -15,6 +15,7 @@ public class OrderResponseDTO {
     private Double totalAmount;
     private LocalDateTime orderTime;
     private OrderStatus status;
+    private Boolean isRated;
     private List<OrderItemResponseDTO> items;
 }
 

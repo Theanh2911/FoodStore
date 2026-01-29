@@ -8,11 +8,10 @@ import yenha.foodstore.Auth.Entity.User;
 import yenha.foodstore.Auth.Repository.UserRepository;
 import yenha.foodstore.Auth.DTO.LoginRequest;
 import yenha.foodstore.Auth.DTO.RegisterRequest;
+import yenha.foodstore.Auth.DTO.UpdateUserRequest;
+import yenha.foodstore.Auth.DTO.UpdatePasswordRequest;
 import yenha.foodstore.Auth.DTO.AuthResponse;
 import yenha.foodstore.Auth.Security.JwtUtils;
-
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -209,6 +208,162 @@ public class UserService {
             return response;
         } catch (io.jsonwebtoken.JwtException e) {
             response.put("message", "Invalid token");
+            response.put("error", "true");
+            return response;
+        }
+    }
+
+    /**
+     * Update user information (name, phone number, password)
+     *
+     * @param userId The ID of the user to update
+     * @param request The update request containing new values
+     * @return Map with success or error message
+     */
+    public Map<String, String> updateUser(Long userId, UpdateUserRequest request) {
+        Map<String, String> response = new HashMap<>();
+
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("message", "User not found");
+                response.put("error", "true");
+                return response;
+            }
+
+            User user = userOpt.get();
+
+            // Update name if provided
+            if (request.getName() != null && !request.getName().trim().isEmpty()) {
+                user.setName(request.getName().trim());
+            }
+
+            // Update phone number if provided and not duplicate
+            if (request.getPhoneNumber() != null && !request.getPhoneNumber().trim().isEmpty()) {
+                String newPhoneNumber = request.getPhoneNumber().trim();
+                
+                // Check if phone number already exists for another user
+                Optional<User> existingUser = userRepository.findByPhoneNumber(newPhoneNumber);
+                if (existingUser.isPresent() && !existingUser.get().getId().equals(userId)) {
+                    response.put("message", "Phone number already exists");
+                    response.put("error", "true");
+                    return response;
+                }
+                
+                user.setPhoneNumber(newPhoneNumber);
+            }
+
+            // Update password if provided
+            if (request.getPassword() != null && !request.getPassword().isEmpty()) {
+                if (request.getPassword().length() < 6) {
+                    response.put("message", "Password must be at least 6 characters long");
+                    response.put("error", "true");
+                    return response;
+                }
+                String hashedPassword = passwordEncoder.encode(request.getPassword());
+                user.setPasswordHashed(hashedPassword);
+            }
+
+            userRepository.save(user);
+
+            response.put("message", "User updated successfully");
+            response.put("userId", user.getId().toString());
+            response.put("name", user.getName());
+            response.put("phoneNumber", user.getPhoneNumber());
+            return response;
+        } catch (Exception e) {
+            response.put("message", "Update failed: " + e.getMessage());
+            response.put("error", "true");
+            return response;
+        }
+    }
+
+    /**
+     * Delete user permanently from database (hard delete)
+     *
+     * @param userId The ID of the user to delete
+     * @return Map with success or error message
+     */
+    public Map<String, String> deleteUser(Long userId) {
+        Map<String, String> response = new HashMap<>();
+
+        try {
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("message", "User not found");
+                response.put("error", "true");
+                return response;
+            }
+
+            userRepository.deleteById(userId);
+
+            response.put("message", "User deleted successfully");
+            response.put("userId", userId.toString());
+            return response;
+        } catch (Exception e) {
+            response.put("message", "Delete failed: " + e.getMessage());
+            response.put("error", "true");
+            return response;
+        }
+    }
+
+    /**
+     * Update password for authenticated user (staff can update their own password)
+     *
+     * @param userId The ID of the user updating their password
+     * @param request The update password request containing old and new passwords
+     * @return Map with success or error message
+     */
+    public Map<String, String> updatePassword(Long userId, UpdatePasswordRequest request) {
+        Map<String, String> response = new HashMap<>();
+
+        try {
+            // Validation
+            if (request.getOldPassword() == null || request.getOldPassword().isEmpty()) {
+                response.put("message", "Old password is required");
+                response.put("error", "true");
+                return response;
+            }
+
+            if (request.getNewPassword() == null || request.getNewPassword().isEmpty()) {
+                response.put("message", "New password is required");
+                response.put("error", "true");
+                return response;
+            }
+
+            if (request.getNewPassword().length() < 6) {
+                response.put("message", "New password must be at least 6 characters long");
+                response.put("error", "true");
+                return response;
+            }
+
+            // Find user
+            Optional<User> userOpt = userRepository.findById(userId);
+            if (userOpt.isEmpty()) {
+                response.put("message", "User not found");
+                response.put("error", "true");
+                return response;
+            }
+
+            User user = userOpt.get();
+
+            // Verify old password
+            if (!passwordEncoder.matches(request.getOldPassword(), user.getPasswordHashed())) {
+                response.put("message", "Old password is incorrect");
+                response.put("error", "true");
+                return response;
+            }
+
+            // Update to new password
+            String hashedPassword = passwordEncoder.encode(request.getNewPassword());
+            user.setPasswordHashed(hashedPassword);
+            userRepository.save(user);
+
+            response.put("message", "Password updated successfully");
+            response.put("userId", user.getId().toString());
+            return response;
+        } catch (Exception e) {
+            response.put("message", "Password update failed: " + e.getMessage());
             response.put("error", "true");
             return response;
         }
