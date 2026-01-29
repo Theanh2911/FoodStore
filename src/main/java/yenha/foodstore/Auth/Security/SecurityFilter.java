@@ -45,8 +45,9 @@ public class SecurityFilter {
                                         .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/auth/client-register").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
+                                        .requestMatchers(HttpMethod.PUT, "/api/auth/update-password").authenticated()
 
-
+                                        .requestMatchers(HttpMethod.GET, "/api/auth/logout").permitAll()
                                         .requestMatchers(HttpMethod.POST, "/api/payment/webhook/**").permitAll()
 
                                         .requestMatchers(HttpMethod.GET, "/api/menu/categories/**").permitAll()
@@ -66,6 +67,9 @@ public class SecurityFilter {
                                         .requestMatchers("/api/auth/admin-register").hasRole("ADMIN")
 
                                         .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
+
+                                        .requestMatchers(HttpMethod.POST, "/api/ratings/**").hasRole("CLIENT")
+                                        .requestMatchers(HttpMethod.GET, "/api/ratings").hasRole("ADMIN")
 
                                         .anyRequest().authenticated())
 
