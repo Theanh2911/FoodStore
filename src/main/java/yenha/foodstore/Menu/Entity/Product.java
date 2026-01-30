@@ -20,6 +20,12 @@ public class Product {
     @Column(nullable = false)
     private Double price;
 
+    @Column(nullable = false)
+    private Double cost;
+
+    @Column(name = "default_daily_limit")
+    private Integer defaultDailyLimit;
+
     @Column(length = 500)
     private String image;
 

@@ -69,6 +69,8 @@ public class ProductService {
         Product product = new Product();
         product.setName(productDTO.getName());
         product.setPrice(productDTO.getPrice());
+        product.setCost(productDTO.getCost());
+        product.setDefaultDailyLimit(productDTO.getDefaultDailyLimit());
         product.setImage(productDTO.getImage());
         product.setIsActive(true); // New products are active by default
 
@@ -90,6 +92,8 @@ public class ProductService {
             Product existingProduct = optionalProduct.get();
             existingProduct.setName(productDTO.getName());
             existingProduct.setPrice(productDTO.getPrice());
+            existingProduct.setCost(productDTO.getCost());
+            existingProduct.setDefaultDailyLimit(productDTO.getDefaultDailyLimit());
             existingProduct.setImage(productDTO.getImage());
 
             if (productDTO.getCategoryId() != null) {
@@ -111,6 +115,8 @@ public class ProductService {
         dto.setProductId(product.getProductId());
         dto.setName(product.getName());
         dto.setPrice(product.getPrice());
+        dto.setCost(product.getCost());
+        dto.setDefaultDailyLimit(product.getDefaultDailyLimit());
         dto.setImage(product.getImage());
         if (product.getCategory() != null) {
             dto.setCategoryId(product.getCategory().getCategoryId());

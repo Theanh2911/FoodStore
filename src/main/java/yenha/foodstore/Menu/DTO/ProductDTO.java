@@ -22,6 +22,13 @@ public class ProductDTO {
     @Positive(message = "Product price must be positive")
     private Double price;
     
+    @NotNull(message = "Product cost is required")
+    @Positive(message = "Product cost must be positive")
+    private Double cost;
+    
+    @Positive(message = "Default daily limit must be positive")
+    private Integer defaultDailyLimit;
+    
     private String image;
     
     @NotNull(message = "Category ID is required")

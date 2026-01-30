@@ -117,8 +117,39 @@ public class MenuController {
 
     // ========== PRODUCT ENDPOINTS ==========
 
-    @GetMapping("/products/getAll")
+    /**
+     * Get all active products (for both client and staff)
+     * Includes all fields: cost, defaultDailyLimit, etc.
+     */
+    @GetMapping("/products")
     public ResponseEntity<List<Product>> getAllProducts() {
+        try {
+            List<Product> products = productService.getAllProducts();
+            return new ResponseEntity<>(products, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Get all products including inactive (for admin)
+     */
+    @PreAuthorize("hasAnyRole('ADMIN', 'STAFF')")
+    @GetMapping("/products/all-including-inactive")
+    public ResponseEntity<List<Product>> getAllProductsIncludingInactive() {
+        try {
+            List<Product> products = productService.getAllProductsIncludingInactive();
+            return new ResponseEntity<>(products, HttpStatus.OK);
+        } catch (Exception e) {
+            return new ResponseEntity<>(null, HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    /**
+     * Legacy endpoint - kept for backward compatibility
+     */
+    @GetMapping("/products/getAll")
+    public ResponseEntity<List<Product>> getAllProductsLegacy() {
         try {
             List<Product> products = productService.getAllProducts();
             return new ResponseEntity<>(products, HttpStatus.OK);

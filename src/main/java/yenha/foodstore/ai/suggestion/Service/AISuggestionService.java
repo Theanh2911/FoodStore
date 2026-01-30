@@ -32,27 +32,20 @@ public class AISuggestionService {
 
     public MenuSuggestion getSuggestion(String userDemand) {
         try {
-            // 1. Get all products from database (including inactive for AI suggestion)
             List<Product> products = productService.getAllProductsIncludingInactive();
-            
-            // 2. Build menu string from products
+
             String menuString = buildMenuString(products);
-            
-            // 3. Build system prompt with dynamic menu
+
             String systemPrompt = buildSystemPrompt(menuString);
-            
-            // 4. Create messages list
+
             List<GroqMessage> messages = new ArrayList<>();
             messages.add(new GroqMessage("system", systemPrompt));
             messages.add(new GroqMessage("user", userDemand));
-            
-            // 5. Create request
+
             GroqRequest groqRequest = new GroqRequest(messages);
-            
-            // 6. Call Groq API
+
             GroqResponse groqResponse = callGroqAPI(groqRequest);
-            
-            // 7. Extract and parse the suggestion
+
             return extractMenuSuggestion(groqResponse);
             
         } catch (Exception e) {
@@ -61,13 +54,11 @@ public class AISuggestionService {
     }
 
     private String buildMenuString(List<Product> products) {
-        // Group products by category name, only take one product per category
         Map<String, List<Product>> groupedByCategory = products.stream()
                 .collect(Collectors.groupingBy(p -> p.getCategory().getName()));
         
         StringBuilder menuBuilder = new StringBuilder();
-        
-        // Build menu organized by category
+
         for (Map.Entry<String, List<Product>> entry : groupedByCategory.entrySet()) {
             String categoryName = entry.getKey();
             List<Product> categoryProducts = entry.getValue();
@@ -82,51 +73,48 @@ public class AISuggestionService {
     }
 
     private String buildSystemPrompt(String menuString) {
-        return "Bạn là AI agent gợi ý món ăn cho nhà hàng.\n\n" +
-                "⚠️ QUY TẮC BẮT BUỘC (KHÔNG ĐƯỢC VI PHẠM):\n" +
-                "- Chỉ sử dụng các món có trong MENU.\n" +
-                "- main_dish PHẢI chọn từ category **Đồ ăn**\n" +
-                "- side_dish PHẢI chọn từ category **Đồ ăn thêm**\n" +
-                "- drink PHẢI chọn từ category **Đồ uống**\n" +
-                "- Nếu category nào không có món → để giá trị null\n" +
-                "- CHỈ trả về MỘT JSON hợp lệ.\n" +
-                "- KHÔNG giải thích, KHÔNG markdown, KHÔNG thêm bất kỳ text nào ngoài JSON.\n" +
-                "- Nếu vi phạm format JSON → tự sửa lại cho đúng.\n\n" +
-                "🎯 FORMAT JSON (BẮT BUỘC):\n" +
+        return "You are an AI food recommendation expert for the 'FoodStore' restaurant system.\n" +
+                "Your Task: Analyze the USER REQUEST and recommend a food combo from the provided MENU DATA.\n\n" +
+
+                "### MENU DATA ###\n" +
+                "The available menu items are listed below within XML tags:\n" +
+                "<menu_data>\n" +
+                menuString + "\n" +
+                "</menu_data>\n\n" +
+
+                "### CRITICAL RULES (MUST FOLLOW) ###\n" +
+                "1. **Strict Extraction**: You must select items EXACTLY as they appear in <menu_data>. Do NOT translate, rename, or invent new dishes.\n" +
+                "2. **Categorization**:\n" +
+                "   - `main_dish`: Select from category 'Đồ ăn' or 'Món chính'.\n" +
+                "   - `side_dish`: Select from category 'Đồ ăn thêm' or 'Khai vị'.\n" +
+                "   - `drink`: Select from category 'Đồ uống'.\n" +
+                "3. **Null Handling**: If a category has no suitable item or is missing from the menu, you MUST return `null`.\n" +
+                "4. **Output Format**: Return RAW JSON only. Do NOT use Markdown formatting (no ```json blocks). Do NOT add conversational text.\n\n" +
+
+                "### RESPONSE JSON STRUCTURE ###\n" +
                 "{\n" +
-                "  \"main_dish\": string hoặc null,\n" +
-                "  \"side_dish\": string hoặc null,\n" +
-                "  \"drink\": string hoặc null,\n" +
-                "  \"reason\": string\n" +
+                "  \"main_dish\": \"Exact item name from menu (or null)\",\n" +
+                "  \"side_dish\": \"Exact item name from menu (or null)\",\n" +
+                "  \"drink\": \"Exact item name from menu (or null)\",\n" +
+                "  \"reason\": \"A short explanation (under 20 words) IN VIETNAMESE explaining why this combo fits the request.\"\n" +
                 "}\n\n" +
-                "🧠 LOGIC GỢI Ý:\n" +
-                "- Phân loại món theo category trong menu\n" +
-                "- main_dish: chọn món từ **Đồ ăn**\n" +
-                "- side_dish: chọn món từ **Đồ ăn thêm**\n" +
-                "- drink: chọn món từ **Đồ uống**\n" +
-                "- Ưu tiên combo phù hợp với yêu cầu người dùng\n\n" +
-                "📋 MENU:\n" +
-                menuString + "\n\n" +
-                "📌 VÍ DỤ OUTPUT ĐÚNG:\n" +
-                "{\n" +
-                "  \"main_dish\": \"Cơm sườn nướng\",\n" +
-                "  \"side_dish\": \"Canh rong biển\",\n" +
-                "  \"drink\": \"Trà đào\",\n" +
-                "  \"reason\": \"Combo cân bằng dinh dưỡng, phù hợp khẩu vị\"\n" +
-                "}\n";
+
+                "### FEW-SHOT EXAMPLES ###\n" +
+                "User: 'Tôi muốn ăn trưa nhanh gọn.'\n" +
+                "AI Output: {\"main_dish\": \"Cơm gà xối mỡ\", \"side_dish\": \"Canh rong biển\", \"drink\": \"Trà đá\", \"reason\": \"Bữa trưa đầy đặn, phục vụ nhanh, giải nhiệt tốt.\"}\n\n" +
+
+                "User: 'Chỉ uống nước thôi.'\n" +
+                "AI Output: {\"main_dish\": null, \"side_dish\": null, \"drink\": \"Cà phê sữa\", \"reason\": \"Theo yêu cầu chỉ gọi đồ uống.\"}\n";
     }
 
     private GroqResponse callGroqAPI(GroqRequest request) {
         try {
-            // Create headers
             HttpHeaders headers = new HttpHeaders();
             headers.set("Authorization", "Bearer " + groqApiKey);
             headers.set("Content-Type", "application/json");
-            
-            // Create HTTP entity
+
             HttpEntity<GroqRequest> entity = new HttpEntity<>(request, headers);
-            
-            // Call API
+
             ResponseEntity<GroqResponse> response = restTemplate.exchange(
                     GROQ_API_URL,
                     HttpMethod.POST,
@@ -137,20 +125,18 @@ public class AISuggestionService {
             return response.getBody();
             
         } catch (Exception e) {
-            throw new RuntimeException("Failed to call Groq API: " + e.getMessage(), e);
+            throw new RuntimeException("Failed to call Groq: " + e.getMessage(), e);
         }
     }
 
     private MenuSuggestion extractMenuSuggestion(GroqResponse response) {
         try {
             if (response == null || response.choices() == null || response.choices().isEmpty()) {
-                throw new RuntimeException("Invalid response from Groq API");
+                throw new RuntimeException("Invalid response from Groq");
             }
-            
-            // Get the content from first choice
+
             String content = response.choices().get(0).message().content();
-            
-            // Parse JSON content to MenuSuggestion
+
             return objectMapper.readValue(content, MenuSuggestion.class);
             
         } catch (Exception e) {

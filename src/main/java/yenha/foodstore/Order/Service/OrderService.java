@@ -7,6 +7,9 @@ import yenha.foodstore.Auth.Entity.OrderSession;
 import yenha.foodstore.Auth.Entity.User;
 import yenha.foodstore.Auth.Service.OrderSessionService;
 import yenha.foodstore.Auth.Service.UserService;
+import yenha.foodstore.Inventory.Entity.DailyProductInventory;
+import yenha.foodstore.Inventory.Service.InventoryService;
+import yenha.foodstore.Inventory.Service.InventorySSEService;
 import yenha.foodstore.Menu.Entity.Product;
 import yenha.foodstore.Menu.Repository.ProductRepository;
 import yenha.foodstore.Order.DTO.OrderDTO;
@@ -19,6 +22,7 @@ import yenha.foodstore.Order.Entity.OrderStatus;
 import yenha.foodstore.Order.Repository.OrderRepository;
 import yenha.foodstore.Order.Repository.OrderItemRepository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -34,11 +38,14 @@ public class OrderService {
     private final ProductRepository productRepository;
     private final OrderSessionService orderSessionService;
     private final UserService userService;
+    private final InventoryService inventoryService;
+    private final InventorySSEService inventorySSEService;
 
     @Transactional
     public Order createOrder(OrderDTO orderDTO) {
 
         Order order = new Order();
+        LocalDate today = LocalDate.now();
 
         // Auto-map customer name from userId if provided
         String customerName = orderDTO.getName(); // Default to provided name
@@ -90,6 +97,13 @@ public class OrderService {
                 throw new RuntimeException("Product is no longer available: " + product.getName());
             }
 
+            // CHECK AND DECREASE INVENTORY (with optimistic lock)
+            DailyProductInventory inventory = inventoryService.decreaseInventory(
+                product.getProductId(),
+                itemDTO.getQuantity(),
+                today
+            );
+
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
             orderItem.setProduct(product);
@@ -101,6 +115,12 @@ public class OrderService {
             // Calculate total: price * quantity
             totalAmount += product.getPrice() * itemDTO.getQuantity();
             orderItems.add(orderItem);
+
+            // BROADCAST INVENTORY UPDATE via SSE
+            inventorySSEService.broadcastInventoryUpdate(
+                product.getProductId(),
+                inventory.getNumberRemain()
+            );
         }
 
         // Set calculated total amount

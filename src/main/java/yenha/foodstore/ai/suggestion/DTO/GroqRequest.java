@@ -19,7 +19,7 @@ public record GroqRequest(
             1,
             8192,
             1,
-            false,  // Changed from true to false - we want a complete JSON response, not streaming
+            false,
             "medium",
             null
         );
