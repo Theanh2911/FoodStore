@@ -65,7 +65,7 @@ public class SecurityFilter {
 
                                         .requestMatchers("/api/menu/**").hasRole("ADMIN")
                                         .requestMatchers("/api/auth/admin-register").hasRole("ADMIN")
-                                        .requestMatchers("/api/inventory/stream").permitAll()
+                                        .requestMatchers("/api/inventory/**").permitAll()
 
                                         .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
                                         .requestMatchers("/api/ai/suggestion/**").permitAll()
