@@ -74,10 +74,15 @@ public class MonitoringController {
     @GetMapping("/version")
     public ResponseEntity<?> getVersion() {
         return ResponseEntity.ok(Map.of(
-            "version", "EVENT-DRIVEN-v3",
+            "version", "OPTIMIZED-v4",
             "buildTime", java.time.LocalDateTime.now().toString(),
-            "architecture", "Event-driven: SSE connects without DB query, updates broadcast on inventory changes",
-            "message", "1 inventory update = 1 DB query -> broadcast to N clients"
+            "optimizations", Map.of(
+                "sse", "Event-driven: No DB query on connect",
+                "inventory", "JOIN FETCH to prevent N+1 queries",
+                "products", "JOIN FETCH + caching for active products",
+                "auth", "Token blacklist caching"
+            ),
+            "message", "Connection leak fixed + N+1 queries eliminated + Caching enabled"
         ));
     }
 }

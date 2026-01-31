@@ -1,6 +1,8 @@
 package yenha.foodstore.Menu.Service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import yenha.foodstore.Constant.Error;
@@ -26,7 +28,9 @@ public class ProductService {
     private OrderItemRepository orderItemRepository;
 
     // For customer-facing endpoints - only active products
+    // Cached to avoid repeated queries (invalidated when products change)
     @Transactional(readOnly = true)
+    @Cacheable(value = "activeProducts", key = "'all'")
     public List<Product> getAllProducts() {
         return productRepository.findByIsActiveTrue();
     }
@@ -48,6 +52,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "activeProducts", allEntries = true)
     public void deleteProduct(Long id) {
         Optional<Product> productOpt = productRepository.findById(id);
         if (!productOpt.isPresent()) {
@@ -60,6 +65,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "activeProducts", allEntries = true)
     public void hardDeleteProduct(Long id) {
         if (!productRepository.existsById(id)) {
             throw new RuntimeException(Error.PRODUCT_NOT_FOUND + id);
@@ -73,6 +79,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "activeProducts", allEntries = true)
     public Product saveProductFromDTO(ProductDTO productDTO) {
         Product product = new Product();
         product.setName(productDTO.getName());
@@ -95,6 +102,7 @@ public class ProductService {
     }
 
     @Transactional
+    @CacheEvict(value = "activeProducts", allEntries = true)
     public Product updateProductFromDTO(Long id, ProductDTO productDTO) {
         Optional<Product> optionalProduct = productRepository.findById(id);
         if (optionalProduct.isPresent()) {
