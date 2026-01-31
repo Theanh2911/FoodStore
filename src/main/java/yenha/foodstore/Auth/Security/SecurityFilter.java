@@ -60,12 +60,17 @@ public class SecurityFilter {
                                         .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}/stream").permitAll()
 
                                         .requestMatchers(HttpMethod.GET,"api/payment/events/**").permitAll()
+                                        
+                                        // Inventory endpoints - MUST BE BEFORE other rules
+                                        .requestMatchers(HttpMethod.GET, "/api/inventory/**").permitAll()
+                                        .requestMatchers(HttpMethod.POST, "/api/inventory/**").permitAll()
+                                        .requestMatchers(HttpMethod.PUT, "/api/inventory/**").permitAll()
+                                        
                                         .requestMatchers(HttpMethod.GET, "/api/orders/stream")
                                         .hasAnyRole("ADMIN", "STAFF")
 
                                         .requestMatchers("/api/menu/**").hasRole("ADMIN")
                                         .requestMatchers("/api/auth/admin-register").hasRole("ADMIN")
-                                        .requestMatchers("/api/inventory/**").permitAll()
 
                                         .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
                                         .requestMatchers("/api/ai/suggestion/**").permitAll()
