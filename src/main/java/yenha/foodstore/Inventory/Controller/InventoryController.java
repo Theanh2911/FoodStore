@@ -1,10 +1,13 @@
 package yenha.foodstore.Inventory.Controller;
 
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Propagation;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 import yenha.foodstore.Inventory.DTO.InventoryDTO;
@@ -20,6 +23,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/inventory")
 @RequiredArgsConstructor
+@Slf4j
 public class InventoryController {
 
     private final InventoryService inventoryService;
@@ -28,17 +32,33 @@ public class InventoryController {
 
     /**
      * SSE endpoint - Client connects for real-time inventory updates
-     * Fixed: Fetch data BEFORE creating SSE to avoid transaction leak
+     * 
+     * EVENT-DRIVEN ARCHITECTURE (No DB query on connect!):
+     * 
+     * Frontend flow:
+     * 1. Connect to this endpoint: GET /api/inventory/stream
+     * 2. Wait for "connected" event (confirmation)
+     * 3. Call GET /api/inventory/today to fetch initial data
+     * 4. Listen for "inventory-update" events for real-time updates
+     * 
+     * Event format:
+     * - Event name: "inventory-update"
+     * - Data: { productId: Long, numberRemain: Integer, timestamp: Long }
+     * 
+     * Benefits:
+     * - 14 SSE clients = 0 DB queries on connect
+     * - 1 inventory update = 1 DB query -> broadcast to ALL clients
+     * - No connection pool exhaustion
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamInventory() {
-        // CRITICAL: Fetch data FIRST to ensure transaction completes
-        // before SSE emitter is created and returned
-        List<InventoryDTO> todayInventory = inventoryService.getTodayInventory();
+        log.info("SSE connection requested - creating emitter without DB query");
         
-        // Transaction is now closed, safe to create long-lived SSE connection
+        // Create emitter - NO DB query!
+        // Client receives updates via broadcast when inventory changes
         SseEmitter emitter = sseService.createEmitter();
-        sseService.sendInitialData(emitter, todayInventory);
+        
+        log.info("SSE emitter created. Active emitters: {}", sseService.getActiveConnections());
         
         return emitter;
     }

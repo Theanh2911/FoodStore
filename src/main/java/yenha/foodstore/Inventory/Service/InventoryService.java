@@ -3,6 +3,7 @@ package yenha.foodstore.Inventory.Service;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 import yenha.foodstore.Inventory.DTO.InventoryDTO;
 import yenha.foodstore.Inventory.DTO.InventoryHistoryDTO;
@@ -21,9 +22,11 @@ import java.util.stream.Collectors;
 public class InventoryService {
 
     private final DailyProductInventoryRepository inventoryRepository;
+    private final InventorySSEService inventorySSEService;
 
     /**
      * Decrease inventory for a product (called from OrderService)
+     * EVENT-DRIVEN: Broadcasts update to all SSE clients after save
      */
     @Transactional
     public DailyProductInventory decreaseInventory(Long productId, Integer quantity, LocalDate date) {
@@ -40,12 +43,18 @@ public class InventoryService {
             );
         }
 
-        inventory.setNumberRemain(inventory.getNumberRemain() - quantity);
+        Integer oldQuantity = inventory.getNumberRemain();
+        inventory.setNumberRemain(oldQuantity - quantity);
         
         DailyProductInventory saved = inventoryRepository.save(inventory);
         
         log.info("Decreased inventory for product {}: {} -> {}", 
-            productId, inventory.getNumberRemain() + quantity, inventory.getNumberRemain());
+            productId, oldQuantity, saved.getNumberRemain());
+        
+        // EVENT-DRIVEN: Broadcast to ALL SSE clients (1 query -> N clients)
+        inventorySSEService.broadcastInventoryUpdate(productId, saved.getNumberRemain());
+        log.debug("Broadcasted inventory update to {} SSE clients", 
+                inventorySSEService.getActiveConnections());
         
         return saved;
     }
@@ -61,6 +70,25 @@ public class InventoryService {
         return inventories.stream()
             .map(this::convertToDTO)
             .collect(Collectors.toList());
+    }
+
+    /**
+     * Get today's inventory for SSE - NO @Transactional annotation
+     * Spring Data JPA will auto-create and immediately close transaction per query
+     * This prevents transaction leak into SSE connection
+     */
+    public List<InventoryDTO> getTodayInventoryForSSE() {
+        LocalDate today = LocalDate.now();
+        // Repository method will open & close its own transaction automatically
+        List<DailyProductInventory> inventories = inventoryRepository.findAllByDate(today);
+        
+        // Convert to DTO (no database access here, so no transaction needed)
+        List<InventoryDTO> result = inventories.stream()
+            .map(this::convertToDTO)
+            .collect(Collectors.toList());
+        
+        log.debug("Fetched {} inventory items for SSE (no transaction context)", result.size());
+        return result;
     }
 
     /**

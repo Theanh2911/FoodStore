@@ -37,6 +37,17 @@ public class InventorySSEService {
         emitters.add(emitter);
         log.info("New SSE emitter created. Active emitters: {}", emitters.size());
         
+        // Send connection confirmation (no DB query needed)
+        try {
+            emitter.send(SseEmitter.event()
+                .name("connected")
+                .data("Connected to inventory updates stream. You will receive updates when inventory changes."));
+            log.debug("Sent connection confirmation to client");
+        } catch (IOException e) {
+            emitters.remove(emitter);
+            log.error("Failed to send connection confirmation: {}", e.getMessage());
+        }
+        
         return emitter;
     }
 
@@ -69,18 +80,6 @@ public class InventorySSEService {
         
         if (!deadEmitters.isEmpty()) {
             log.info("Removed {} dead emitters. Active emitters: {}", deadEmitters.size(), emitters.size());
-        }
-    }
-
-    public void sendInitialData(SseEmitter emitter, List<?> data) {
-        try {
-            emitter.send(SseEmitter.event()
-                .name("inventory-init")
-                .data(data));
-            log.debug("Sent initial inventory data to client");
-        } catch (IOException e) {
-            emitters.remove(emitter);
-            log.error("Failed to send initial data: {}", e.getMessage());
         }
     }
 

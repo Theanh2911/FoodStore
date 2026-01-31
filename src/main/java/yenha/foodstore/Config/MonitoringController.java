@@ -70,4 +70,14 @@ public class MonitoringController {
         
         return ResponseEntity.badRequest().body(Map.of("error", "DataSource is not HikariCP"));
     }
+    
+    @GetMapping("/version")
+    public ResponseEntity<?> getVersion() {
+        return ResponseEntity.ok(Map.of(
+            "version", "EVENT-DRIVEN-v3",
+            "buildTime", java.time.LocalDateTime.now().toString(),
+            "architecture", "Event-driven: SSE connects without DB query, updates broadcast on inventory changes",
+            "message", "1 inventory update = 1 DB query -> broadcast to N clients"
+        ));
+    }
 }
