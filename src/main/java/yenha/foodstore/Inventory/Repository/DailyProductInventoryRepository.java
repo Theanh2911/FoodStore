@@ -18,21 +18,22 @@ public interface DailyProductInventoryRepository extends JpaRepository<DailyProd
 
     boolean existsByProductAndDate(Product product, LocalDate date);
 
-    List<DailyProductInventory> findAllByDate(LocalDate date);
+    @Query("SELECT d FROM DailyProductInventory d JOIN FETCH d.product WHERE d.date = :date")
+    List<DailyProductInventory> findAllByDate(@Param("date") LocalDate date);
 
-    @Query("SELECT d FROM DailyProductInventory d WHERE d.date >= :startDate AND d.date <= :endDate ORDER BY d.date DESC, d.product.productId ASC")
+    @Query("SELECT d FROM DailyProductInventory d JOIN FETCH d.product WHERE d.date >= :startDate AND d.date <= :endDate ORDER BY d.date DESC, d.product.productId ASC")
     List<DailyProductInventory> findByDateRange(
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
 
-    @Query("SELECT d FROM DailyProductInventory d WHERE d.product.productId = :productId AND d.date >= :startDate AND d.date <= :endDate ORDER BY d.date DESC")
+    @Query("SELECT d FROM DailyProductInventory d JOIN FETCH d.product WHERE d.product.productId = :productId AND d.date >= :startDate AND d.date <= :endDate ORDER BY d.date DESC")
     List<DailyProductInventory> findByProductIdAndDateRange(
         @Param("productId") Long productId,
         @Param("startDate") LocalDate startDate,
         @Param("endDate") LocalDate endDate
     );
 
-    @Query("SELECT d FROM DailyProductInventory d WHERE d.date = :date AND d.numberRemain = 0")
+    @Query("SELECT d FROM DailyProductInventory d JOIN FETCH d.product WHERE d.date = :date AND d.numberRemain = 0")
     List<DailyProductInventory> findSoldOutProducts(@Param("date") LocalDate date);
 }

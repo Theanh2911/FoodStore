@@ -28,13 +28,16 @@ public class InventoryController {
 
     /**
      * SSE endpoint - Client connects for real-time inventory updates
+     * Fixed: Fetch data BEFORE creating SSE to avoid transaction leak
      */
     @GetMapping(value = "/stream", produces = MediaType.TEXT_EVENT_STREAM_VALUE)
     public SseEmitter streamInventory() {
-        SseEmitter emitter = sseService.createEmitter();
-        
-        // Send initial data when client connects
+        // CRITICAL: Fetch data FIRST to ensure transaction completes
+        // before SSE emitter is created and returned
         List<InventoryDTO> todayInventory = inventoryService.getTodayInventory();
+        
+        // Transaction is now closed, safe to create long-lived SSE connection
+        SseEmitter emitter = sseService.createEmitter();
         sseService.sendInitialData(emitter, todayInventory);
         
         return emitter;
