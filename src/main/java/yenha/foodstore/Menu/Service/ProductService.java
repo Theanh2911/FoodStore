@@ -2,6 +2,7 @@ package yenha.foodstore.Menu.Service;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import yenha.foodstore.Constant.Error;
 import yenha.foodstore.Menu.DTO.ProductDTO;
 import yenha.foodstore.Menu.Entity.Category;
@@ -25,23 +26,28 @@ public class ProductService {
     private OrderItemRepository orderItemRepository;
 
     // For customer-facing endpoints - only active products
+    @Transactional(readOnly = true)
     public List<Product> getAllProducts() {
         return productRepository.findByIsActiveTrue();
     }
 
     // For admin panel - all products including inactive
+    @Transactional(readOnly = true)
     public List<Product> getAllProductsIncludingInactive() {
         return productRepository.findAll();
     }
 
+    @Transactional(readOnly = true)
     public Optional<Product> getProductById(Long id) {
         return productRepository.findById(id);
     }
 
+    @Transactional(readOnly = true)
     public List<Product> getProductsByCategoryId(Long categoryId) {
         return productRepository.findByCategoryCategoryIdAndIsActiveTrue(categoryId);
     }
 
+    @Transactional
     public void deleteProduct(Long id) {
         Optional<Product> productOpt = productRepository.findById(id);
         if (!productOpt.isPresent()) {
@@ -53,6 +59,7 @@ public class ProductService {
         productRepository.save(product);
     }
 
+    @Transactional
     public void hardDeleteProduct(Long id) {
         if (!productRepository.existsById(id)) {
             throw new RuntimeException(Error.PRODUCT_NOT_FOUND + id);
@@ -65,6 +72,7 @@ public class ProductService {
         productRepository.deleteById(id);
     }
 
+    @Transactional
     public Product saveProductFromDTO(ProductDTO productDTO) {
         Product product = new Product();
         product.setName(productDTO.getName());
@@ -86,6 +94,7 @@ public class ProductService {
         return productRepository.save(product);
     }
 
+    @Transactional
     public Product updateProductFromDTO(Long id, ProductDTO productDTO) {
         Optional<Product> optionalProduct = productRepository.findById(id);
         if (optionalProduct.isPresent()) {

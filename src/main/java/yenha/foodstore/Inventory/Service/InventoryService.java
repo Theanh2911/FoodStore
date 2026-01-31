@@ -53,6 +53,7 @@ public class InventoryService {
     /**
      * Get today's inventory for all products
      */
+    @Transactional(readOnly = true)
     public List<InventoryDTO> getTodayInventory() {
         LocalDate today = LocalDate.now();
         List<DailyProductInventory> inventories = inventoryRepository.findAllByDate(today);
@@ -65,6 +66,7 @@ public class InventoryService {
     /**
      * Get inventory history for AI analysis
      */
+    @Transactional(readOnly = true)
     public List<InventoryHistoryDTO> getInventoryHistory(LocalDate startDate, LocalDate endDate) {
         List<DailyProductInventory> inventories = 
             inventoryRepository.findByDateRange(startDate, endDate);
@@ -77,6 +79,7 @@ public class InventoryService {
     /**
      * Get inventory history for specific product
      */
+    @Transactional(readOnly = true)
     public List<InventoryHistoryDTO> getProductInventoryHistory(
         Long productId, LocalDate startDate, LocalDate endDate
     ) {
@@ -91,6 +94,7 @@ public class InventoryService {
     /**
      * Get sold out products for today
      */
+    @Transactional(readOnly = true)
     public List<InventoryDTO> getSoldOutProducts() {
         LocalDate today = LocalDate.now();
         List<DailyProductInventory> soldOut = inventoryRepository.findSoldOutProducts(today);
