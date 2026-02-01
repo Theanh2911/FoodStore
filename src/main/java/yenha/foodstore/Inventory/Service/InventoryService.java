@@ -92,16 +92,11 @@ public class InventoryService {
     }
 
     /**
-     * Get inventory history for AI analysis
+     * Get aggregated inventory history (grouped by product)
      */
     @Transactional(readOnly = true)
-    public List<InventoryHistoryDTO> getInventoryHistory(LocalDate startDate, LocalDate endDate) {
-        List<DailyProductInventory> inventories = 
-            inventoryRepository.findByDateRange(startDate, endDate);
-        
-        return inventories.stream()
-            .map(this::convertToHistoryDTO)
-            .collect(Collectors.toList());
+    public List<yenha.foodstore.Inventory.DTO.InventoryAggregateDTO> getInventoryHistory(LocalDate startDate, LocalDate endDate) {
+        return inventoryRepository.getAggregatedInventory(startDate, endDate);
     }
 
     /**

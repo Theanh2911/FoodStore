@@ -73,15 +73,15 @@ public class InventoryController {
     }
 
     /**
-     * Get inventory history for AI analysis
+     * Get aggregated inventory history (grouped by product)
      * Example: GET /api/inventory/history?startDate=2025-01-01&endDate=2025-01-31
      */
     @GetMapping("/history")
-    public ResponseEntity<List<InventoryHistoryDTO>> getInventoryHistory(
+    public ResponseEntity<List<yenha.foodstore.Inventory.DTO.InventoryAggregateDTO>> getInventoryHistory(
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
         @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate
     ) {
-        List<InventoryHistoryDTO> history = inventoryService.getInventoryHistory(startDate, endDate);
+        List<yenha.foodstore.Inventory.DTO.InventoryAggregateDTO> history = inventoryService.getInventoryHistory(startDate, endDate);
         return ResponseEntity.ok(history);
     }
 

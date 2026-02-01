@@ -11,7 +11,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.client.RestTemplate;
 import yenha.foodstore.Menu.Entity.Product;
 import yenha.foodstore.Menu.Service.ProductService;
-import yenha.foodstore.ai.suggestion.DTO.*;
+import yenha.foodstore.ai.suggestion.DTO.ChoiceReponse.GroqMessage;
+import yenha.foodstore.ai.suggestion.DTO.ChoiceReponse.GroqRequest;
+import yenha.foodstore.ai.suggestion.DTO.ChoiceReponse.GroqResponse;
+import yenha.foodstore.ai.suggestion.DTO.ChoiceReponse.MenuSuggestion;
 
 import java.util.*;
 import java.util.stream.Collectors;

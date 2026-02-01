@@ -1,4 +1,4 @@
-package yenha.foodstore.ai.suggestion.DTO;
+package yenha.foodstore.ai.suggestion.DTO.ChoiceReponse;
 
 public record GroqMessage(
     String role,

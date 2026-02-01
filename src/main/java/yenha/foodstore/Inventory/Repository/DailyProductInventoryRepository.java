@@ -36,4 +36,22 @@ public interface DailyProductInventoryRepository extends JpaRepository<DailyProd
 
     @Query("SELECT d FROM DailyProductInventory d JOIN FETCH d.product WHERE d.date = :date AND d.numberRemain = 0")
     List<DailyProductInventory> findSoldOutProducts(@Param("date") LocalDate date);
+
+    @Query("SELECT new yenha.foodstore.Inventory.DTO.InventoryAggregateDTO(" +
+           "p.productId, " +
+           "p.name, " +
+           "c.name, " +
+           "SUM((d.dailyLimit - d.numberRemain) * (d.priceAtDate - d.costAtDate)), " +
+           "AVG(CASE WHEN d.dailyLimit = 0 THEN 0.0 ELSE CAST(d.dailyLimit - d.numberRemain AS double) / d.dailyLimit END), " +
+           "CASE WHEN SUM(d.dailyLimit - d.numberRemain) = 0 THEN 0.0 ELSE SUM((d.dailyLimit - d.numberRemain) * (d.priceAtDate - d.costAtDate)) / SUM(d.dailyLimit - d.numberRemain) END) " +
+           "FROM DailyProductInventory d " +
+           "JOIN d.product p " +
+           "JOIN p.category c " +
+           "WHERE d.date BETWEEN :startDate AND :endDate " +
+           "GROUP BY p.productId, p.name, c.name " +
+           "ORDER BY SUM((d.dailyLimit - d.numberRemain) * (d.priceAtDate - d.costAtDate)) DESC")
+    List<yenha.foodstore.Inventory.DTO.InventoryAggregateDTO> getAggregatedInventory(
+        @Param("startDate") LocalDate startDate,
+        @Param("endDate") LocalDate endDate
+    );
 }
