@@ -13,6 +13,9 @@ public class OrderResponseDTO {
     private String customerName;
     private Integer tableNumber;
     private Double totalAmount;
+    private String promotionCode;
+    private Double discountAmount;
+    private Double finalAmount;
     private LocalDateTime orderTime;
     private OrderStatus status;
     private Boolean isRated;

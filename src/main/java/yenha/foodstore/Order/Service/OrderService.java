@@ -21,6 +21,7 @@ import yenha.foodstore.Order.Entity.OrderItem;
 import yenha.foodstore.Order.Entity.OrderStatus;
 import yenha.foodstore.Order.Repository.OrderRepository;
 import yenha.foodstore.Order.Repository.OrderItemRepository;
+import yenha.foodstore.Promotion.Service.PromotionService;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -40,6 +41,7 @@ public class OrderService {
     private final UserService userService;
     private final InventoryService inventoryService;
     private final InventorySSEService inventorySSEService;
+    private final PromotionService promotionService;
 
     @Transactional
     public Order createOrder(OrderDTO orderDTO) {
@@ -126,6 +128,25 @@ public class OrderService {
         // Set calculated total amount
         order.setTotalAmount(totalAmount);
 
+        // Apply promotion if provided
+        double discountAmount = 0.0;
+        if (orderDTO.getPromotionCode() != null && !orderDTO.getPromotionCode().trim().isEmpty()) {
+            // Temporarily set items to calculate discount
+            order.setItems(orderItems);
+            
+            // Apply promotion and get discount amount
+            discountAmount = promotionService.applyPromotion(
+                orderDTO.getPromotionCode(),
+                totalAmount,
+                orderItems
+            );
+            
+            order.setPromotionCode(orderDTO.getPromotionCode().toUpperCase());
+        }
+
+        order.setDiscountAmount(discountAmount);
+        order.setFinalAmount(totalAmount - discountAmount);
+
         // Save order first to get the ID
         order = orderRepository.save(order);
 
@@ -173,6 +194,9 @@ public class OrderService {
         responseDTO.setCustomerName(order.getCustomerName());
         responseDTO.setTableNumber(order.getTableNumber());
         responseDTO.setTotalAmount(order.getTotalAmount());
+        responseDTO.setPromotionCode(order.getPromotionCode());
+        responseDTO.setDiscountAmount(order.getDiscountAmount() != null ? order.getDiscountAmount() : 0.0);
+        responseDTO.setFinalAmount(order.getFinalAmount());
         responseDTO.setOrderTime(order.getOrderTime());
         responseDTO.setStatus(order.getStatus());
         responseDTO.setIsRated(order.getIsRated() != null ? order.getIsRated() : false);

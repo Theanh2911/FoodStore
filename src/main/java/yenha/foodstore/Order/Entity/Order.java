@@ -33,6 +33,16 @@ public class Order {
     @Column(nullable = false, columnDefinition = "BOOLEAN DEFAULT FALSE")
     private Boolean isRated = false;
 
+    // Promotion fields
+    @Column(length = 6)
+    private String promotionCode;
+
+    @Column(nullable = false)
+    private Double discountAmount = 0.0;
+
+    @Column(nullable = false)
+    private Double finalAmount;
+
     @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
     private List<OrderItem> items;
 }
