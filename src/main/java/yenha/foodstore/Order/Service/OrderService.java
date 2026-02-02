@@ -196,7 +196,7 @@ public class OrderService {
         responseDTO.setTotalAmount(order.getTotalAmount());
         responseDTO.setPromotionCode(order.getPromotionCode());
         responseDTO.setDiscountAmount(order.getDiscountAmount() != null ? order.getDiscountAmount() : 0.0);
-        responseDTO.setFinalAmount(order.getFinalAmount());
+        responseDTO.setFinalAmount(order.getFinalAmount() != null ? order.getFinalAmount() : order.getTotalAmount());
         responseDTO.setOrderTime(order.getOrderTime());
         responseDTO.setStatus(order.getStatus());
         responseDTO.setIsRated(order.getIsRated() != null ? order.getIsRated() : false);
