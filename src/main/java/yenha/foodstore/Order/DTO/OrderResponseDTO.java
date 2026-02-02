@@ -6,12 +6,15 @@ import yenha.foodstore.Order.Entity.OrderStatus;
 import java.time.LocalDateTime;
 import java.util.List;
 
-@Getter @Setter
-@NoArgsConstructor @AllArgsConstructor
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
 public class OrderResponseDTO {
     private Long orderId;
     private String customerName;
     private Integer tableNumber;
+    private Double amount;
     private Double totalAmount;
     private String promotionCode;
     private Double discountAmount;
@@ -21,4 +24,3 @@ public class OrderResponseDTO {
     private Boolean isRated;
     private List<OrderItemResponseDTO> items;
 }
-

@@ -101,10 +101,9 @@ public class OrderService {
 
             // CHECK AND DECREASE INVENTORY (with optimistic lock)
             DailyProductInventory inventory = inventoryService.decreaseInventory(
-                product.getProductId(),
-                itemDTO.getQuantity(),
-                today
-            );
+                    product.getProductId(),
+                    itemDTO.getQuantity(),
+                    today);
 
             OrderItem orderItem = new OrderItem();
             orderItem.setOrder(order);
@@ -120,9 +119,8 @@ public class OrderService {
 
             // BROADCAST INVENTORY UPDATE via SSE
             inventorySSEService.broadcastInventoryUpdate(
-                product.getProductId(),
-                inventory.getNumberRemain()
-            );
+                    product.getProductId(),
+                    inventory.getNumberRemain());
         }
 
         // Set calculated total amount
@@ -133,14 +131,13 @@ public class OrderService {
         if (orderDTO.getPromotionCode() != null && !orderDTO.getPromotionCode().trim().isEmpty()) {
             // Temporarily set items to calculate discount
             order.setItems(orderItems);
-            
+
             // Apply promotion and get discount amount
             discountAmount = promotionService.applyPromotion(
-                orderDTO.getPromotionCode(),
-                totalAmount,
-                orderItems
-            );
-            
+                    orderDTO.getPromotionCode(),
+                    totalAmount,
+                    orderItems);
+
             order.setPromotionCode(orderDTO.getPromotionCode().toUpperCase());
         }
 
@@ -193,10 +190,17 @@ public class OrderService {
         responseDTO.setOrderId(order.getOrderId());
         responseDTO.setCustomerName(order.getCustomerName());
         responseDTO.setTableNumber(order.getTableNumber());
+
+        // Set amount (finalAmount) - primary amount field to use
+        double finalAmount = order.getFinalAmount() != null ? order.getFinalAmount() : order.getTotalAmount();
+        responseDTO.setAmount(finalAmount);
+
+        // Keep these for detailed breakdown
         responseDTO.setTotalAmount(order.getTotalAmount());
         responseDTO.setPromotionCode(order.getPromotionCode());
         responseDTO.setDiscountAmount(order.getDiscountAmount() != null ? order.getDiscountAmount() : 0.0);
-        responseDTO.setFinalAmount(order.getFinalAmount() != null ? order.getFinalAmount() : order.getTotalAmount());
+        responseDTO.setFinalAmount(finalAmount); // For backward compatibility
+
         responseDTO.setOrderTime(order.getOrderTime());
         responseDTO.setStatus(order.getStatus());
         responseDTO.setIsRated(order.getIsRated() != null ? order.getIsRated() : false);
