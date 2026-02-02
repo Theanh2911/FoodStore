@@ -13,6 +13,7 @@ public class OrderDTO {
     private Integer tableNumber;
     private String sessionId;
     private String userId;
+    private String promotionCode; // Mã khuyến mãi (optional)
     private List<OrderItemDTO> items;
 
     public String getName() {

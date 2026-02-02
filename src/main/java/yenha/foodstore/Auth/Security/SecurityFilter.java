@@ -38,40 +38,7 @@ public class SecurityFilter {
                                 .csrf(AbstractHttpConfigurer::disable)
                                 .cors(cors -> cors.configurationSource(corsConfig.corsConfigurationSource()))
                                 .authorizeHttpRequests(auth -> auth
-                                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-
-                                        .requestMatchers(HttpMethod.POST, "/api/session/**").permitAll()
-
-                                        .requestMatchers(HttpMethod.POST, "/api/auth/login").permitAll()
-                                        .requestMatchers(HttpMethod.POST, "/api/auth/client-register").permitAll()
-                                        .requestMatchers(HttpMethod.POST, "/api/auth/refresh").permitAll()
-                                        .requestMatchers(HttpMethod.PUT, "/api/auth/update-password").authenticated()
-
-                                        .requestMatchers(HttpMethod.GET, "/api/auth/logout").permitAll()
-                                        .requestMatchers(HttpMethod.POST, "/api/payment/webhook/**").permitAll()
-
-                                        .requestMatchers(HttpMethod.GET, "/api/menu/categories/**").permitAll()
-                                        .requestMatchers(HttpMethod.GET, "/api/menu/products/**").permitAll()
-
-                                        .requestMatchers(HttpMethod.GET, "/api/banks/active").permitAll()
-
-                                        .requestMatchers(HttpMethod.POST, "/api/orders/create").permitAll()
-                                        .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}").permitAll()
-                                        .requestMatchers(HttpMethod.GET, "/api/orders/{orderId}/stream").permitAll()
-
-                                        .requestMatchers(HttpMethod.GET,"api/payment/events/**").permitAll()
-                                        .requestMatchers(HttpMethod.GET, "/api/orders/stream")
-                                        .hasAnyRole("ADMIN", "STAFF")
-
-                                        .requestMatchers("/api/menu/**").hasRole("ADMIN")
-                                        .requestMatchers("/api/auth/admin-register").hasRole("ADMIN")
-
-                                        .requestMatchers("/api/orders/**").hasAnyRole("ADMIN", "STAFF")
-
-                                        .requestMatchers(HttpMethod.POST, "/api/ratings/**").hasRole("CLIENT")
-                                        .requestMatchers(HttpMethod.GET, "/api/ratings").hasRole("ADMIN")
-
-                                        .anyRequest().authenticated())
+                                        .anyRequest().permitAll())
 
                                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                                 .addFilterBefore(authFilter, UsernamePasswordAuthenticationFilter.class)

@@ -144,10 +144,16 @@ public class OrderController {
 
             // Nếu chuyển sang PAID, gửi PAYMENT SSE event (cho customer waiting page)
             if (statusUpdate.getStatus() == OrderStatus.PAID) {
-                PaymentEventDTO paymentEvent = PaymentEventDTO.success(
+                double finalAmount = updatedOrder.getFinalAmount() != null ? 
+                    updatedOrder.getFinalAmount() : updatedOrder.getTotalAmount();
+                
+                PaymentEventDTO paymentEvent = PaymentEventDTO.successWithPromotion(
                         orderId,
                         null, // Không có paymentId (thanh toán thủ công)
-                        updatedOrder.getTotalAmount(),
+                        finalAmount,                    // finalAmount (sau giảm giá)
+                        updatedOrder.getTotalAmount(),  // totalAmount
+                        updatedOrder.getDiscountAmount() != null ? updatedOrder.getDiscountAmount() : 0.0,
+                        updatedOrder.getPromotionCode(),
                         "MANUAL", // Gateway: MANUAL cho thanh toán thủ công
                         LocalDateTime.now().toString());
                 sseService.sendPaymentEvent(orderId, paymentEvent);

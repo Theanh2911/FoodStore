@@ -73,8 +73,12 @@ public class PaymentService {
         }
 
         Order order = orderOpt.get();
-        log.info("Order details: id={}, status={}, totalAmount={}",
-                order.getOrderId(), order.getStatus(), order.getTotalAmount());
+        // Lấy số tiền cần thanh toán (sau giảm giá nếu có promotion)
+        double expectedAmount = order.getFinalAmount() != null ? order.getFinalAmount() : order.getTotalAmount();
+        
+        log.info("Order details: id={}, status={}, totalAmount={}, discountAmount={}, finalAmount={}",
+                order.getOrderId(), order.getStatus(), order.getTotalAmount(), 
+                order.getDiscountAmount(), expectedAmount);
 
         if (order.getStatus() != OrderStatus.SERVED) {
             log.error("Order status is not SERVED. Current status: {}, orderId: {}",
@@ -84,12 +88,12 @@ public class PaymentService {
             return;
         }
 
-        log.info("Validating amount: expected={}, received={}",
-                order.getTotalAmount(), webhook.getTransferAmount());
-        if (!validateAmount(webhook.getTransferAmount(), order.getTotalAmount())) {
+        log.info("Validating amount: expected={}, received={}, promotion={}",
+                expectedAmount, webhook.getTransferAmount(), order.getPromotionCode());
+        if (!validateAmount(webhook.getTransferAmount(), expectedAmount)) {
             log.error("Amount mismatch. Expected: {}, Got: {}, Difference: {}",
-                    order.getTotalAmount(), webhook.getTransferAmount(),
-                    Math.abs(webhook.getTransferAmount() - order.getTotalAmount()));
+                    expectedAmount, webhook.getTransferAmount(),
+                    Math.abs(webhook.getTransferAmount() - expectedAmount));
             saveAmountMismatchPayment(webhook, orderId);
             sseService.sendPaymentEvent(orderId, PaymentEventDTO.failed(orderId, "Số tiền không khớp"));
             return;
@@ -98,10 +102,14 @@ public class PaymentService {
 
         updateOrderStatus(order);
 
-        PaymentEventDTO event = PaymentEventDTO.success(
+        // Tạo payment event với đầy đủ promotion info
+        PaymentEventDTO event = PaymentEventDTO.successWithPromotion(
                 orderId,
                 payment.getId(),
-                payment.getTransferAmount(),
+                expectedAmount,                         // finalAmount
+                order.getTotalAmount(),                 // totalAmount
+                order.getDiscountAmount() != null ? order.getDiscountAmount() : 0.0,  // discountAmount
+                order.getPromotionCode(),               // promotionCode
                 payment.getGateway(),
                 payment.getTransactionDate().toString());
 

@@ -2,6 +2,8 @@ package yenha.foodstore.Auth.Service;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import yenha.foodstore.Auth.Entity.BlacklistedToken;
@@ -33,6 +35,7 @@ public class TokenBlacklistService {
      * @param expirationTime When the token expires (in milliseconds since epoch)
      * @param tokenType The type of token ("access" or "refresh")
      */
+    @CacheEvict(value = "tokenBlacklist", key = "#token")
     public void blacklistToken(String token, Long expirationTime, String tokenType) {
         // Check if token is already blacklisted to avoid duplicates
         if (!blacklistedTokenRepository.existsByToken(token)) {
@@ -54,6 +57,7 @@ public class TokenBlacklistService {
      * @param token The JWT token to check
      * @return true if token is blacklisted, false otherwise
      */
+    @Cacheable(value = "tokenBlacklist", key = "#token")
     public boolean isTokenBlacklisted(String token) {
         return blacklistedTokenRepository.existsByToken(token);
     }
@@ -62,6 +66,7 @@ public class TokenBlacklistService {
      * Clean up expired tokens from blacklist every hour
      */
     @Scheduled(fixedRate = 3600000) // Run every hour
+    @CacheEvict(value = "tokenBlacklist", allEntries = true)
     public void cleanupExpiredTokens() {
         LocalDateTime currentTime = LocalDateTime.now();
 
